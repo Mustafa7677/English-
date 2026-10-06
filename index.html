@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Sagid Mustafa">
+  <meta name="description" content="A table showing the consequences of cheating in school, at university, in relationships and in society.">
+  <title>Consequences of Cheating</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --surface: #ffffff;
+      --text: #1f2430;
+      --muted: #5c6475;
+      --border: #dde1ea;
+      --accent: #b3261e;
+      --head: #2b2f3a;
+      --head-text: #ffffff;
+      --stripe: #f0f2f7;
+      --high: #b3261e;
+      --medium: #b26a00;
+      --low: #2e7d32;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #14161c;
+        --surface: #1d2029;
+        --text: #e8eaf0;
+        --muted: #a3a9b8;
+        --border: #2f3442;
+        --accent: #ff7b72;
+        --head: #2b2f3a;
+        --head-text: #ffffff;
+        --stripe: #232733;
+        --high: #ff7b72;
+        --medium: #f0b44c;
+        --low: #7ccf80;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      line-height: 1.6;
+    }
+    header {
+      text-align: center;
+      padding: 48px 16px 24px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      color: var(--accent);
+    }
+    .author {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+    main {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 16px 48px;
+    }
+    .intro {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    .intro p { margin: 0; }
+    .table-wrap {
+      overflow-x: auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 640px;
+    }
+    caption {
+      text-align: left;
+      padding: 16px 20px;
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+    th, td {
+      padding: 14px 20px;
+      text-align: left;
+      vertical-align: top;
+      border-top: 1px solid var(--border);
+    }
+    thead th {
+      background: var(--head);
+      color: var(--head-text);
+      font-weight: 600;
+    }
+    tbody tr:nth-child(even) { background: var(--stripe); }
+    tbody th { font-weight: 600; white-space: nowrap; }
+    .level { font-weight: 700; white-space: nowrap; }
+    .high { color: var(--high); }
+    .medium { color: var(--medium); }
+    .low { color: var(--low); }
+    .conclusion {
+      margin-top: 24px;
+      background: var(--surface);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 16px 24px;
+    }
+    .conclusion h2 { margin: 0 0 8px; font-size: 1.2rem; }
+    .conclusion p { margin: 0; }
+    footer {
+      text-align: center;
+      color: var(--muted);
+      padding: 24px 16px 40px;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Consequences of Cheating</h1>
+    <p class="author">Author: Sagid Mustafa</p>
+  </header>
+
+  <main>
+    <section class="intro">
+      <p>
+        Cheating means acting dishonestly to gain an unfair advantage. It may seem
+        like an easy shortcut, but it often leads to serious problems. The table
+        below shows the main consequences of cheating in different areas of life.
+      </p>
+    </section>
+
+    <div class="table-wrap">
+      <table>
+        <caption>Table 1. Consequences of cheating</caption>
+        <thead>
+          <tr>
+            <th scope="col">Area</th>
+            <th scope="col">Example of cheating</th>
+            <th scope="col">Short-term consequence</th>
+            <th scope="col">Long-term consequence</th>
+            <th scope="col">Seriousness</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">School</th>
+            <td>Copying homework or using notes in a test</td>
+            <td>Zero mark, detention, call to parents</td>
+            <td>Gaps in knowledge, poor results in later exams</td>
+            <td class="level medium">Medium</td>
+          </tr>
+          <tr>
+            <th scope="row">University</th>
+            <td>Plagiarism, buying essays, cheating in exams</td>
+            <td>Failing the course, disciplinary hearing</td>
+            <td>Suspension or expulsion, record on transcript</td>
+            <td class="level high">High</td>
+          </tr>
+          <tr>
+            <th scope="row">Learning</th>
+            <td>Letting others do your work</td>
+            <td>Feeling of an easy success</td>
+            <td>Lack of real skills and knowledge</td>
+            <td class="level medium">Medium</td>
+          </tr>
+          <tr>
+            <th scope="row">Reputation</th>
+            <td>Being caught cheating by teachers or classmates</td>
+            <td>Embarrassment and shame</td>
+            <td>Loss of trust and respect from others</td>
+            <td class="level high">High</td>
+          </tr>
+          <tr>
+            <th scope="row">Career</th>
+            <td>Fake diplomas, lying on a CV</td>
+            <td>Being rejected or fired</td>
+            <td>Damaged career, difficulty finding a job</td>
+            <td class="level high">High</td>
+          </tr>
+          <tr>
+            <th scope="row">Law</th>
+            <td>Exam fraud, forging documents</td>
+            <td>Fines, investigation</td>
+            <td>Criminal record, prison in serious cases</td>
+            <td class="level high">High</td>
+          </tr>
+          <tr>
+            <th scope="row">Relationships</th>
+            <td>Being unfaithful to a partner</td>
+            <td>Arguments, broken trust</td>
+            <td>Break-up or divorce, emotional pain</td>
+            <td class="level high">High</td>
+          </tr>
+          <tr>
+            <th scope="row">Mental health</th>
+            <td>Hiding dishonest actions</td>
+            <td>Stress, guilt, fear of being caught</td>
+            <td>Anxiety, low self-esteem</td>
+            <td class="level medium">Medium</td>
+          </tr>
+          <tr>
+            <th scope="row">Sports and games</th>
+            <td>Doping, using cheats in online games</td>
+            <td>Disqualification, account ban</td>
+            <td>Lost titles and medals, lifetime ban</td>
+            <td class="level medium">Medium</td>
+          </tr>
+          <tr>
+            <th scope="row">Society</th>
+            <td>Widespread cheating in education and work</td>
+            <td>Unfair results for honest people</td>
+            <td>Less qualified professionals, lower public trust</td>
+            <td class="level low">Low (per person), high overall</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <section class="conclusion">
+      <h2>Conclusion</h2>
+      <p>
+        Cheating may bring a quick result, but its consequences are usually much
+        bigger than the benefit. It harms our education, career, relationships and
+        self-respect. Honesty and hard work are the best way to real success.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    &copy; 2026 Sagid Mustafa
+  </footer>
+</body>
+</html>
