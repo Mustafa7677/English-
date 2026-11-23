@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>4090: The Cursed City</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="hud" class="hidden">
+    <div id="bars">
+      <div class="bar"><span>HEALTH</span><div class="track"><div id="hp" class="fill hp"></div></div></div>
+      <div class="bar"><span>STAMINA</span><div class="track"><div id="st" class="fill st"></div></div></div>
+      <div class="bar"><span>FEAR</span><div class="track"><div id="fr" class="fill fr"></div></div></div>
+      <div id="inv"></div>
+    </div>
+    <div id="clock">03:33 AM</div>
+    <div id="quest"></div>
+    <div id="events"></div>
+    <div id="crosshair">+</div>
+    <div id="prompt"></div>
+    <div id="fakefps"></div>
+    <div id="warning"></div>
+    <div id="fps"></div>
+  </div>
+  <div id="subtitle"></div>
+  <div id="bigtext"></div>
+  <div id="vignette"></div>
+  <div id="glitch"></div>
+  <div id="redflash"></div>
+  <div id="alarm"></div>
+  <canvas id="screamer"></canvas>
+  <div id="fade"></div>
+
+  <div id="menu" class="screen">
+    <div class="panel">
+      <h1>4090<small>THE CURSED CITY</small></h1>
+      <p class="tag">a 3D brainrot horror simulator</p>
+      <button id="btn-start" class="big">WAKE UP</button>
+      <button class="btn-settings">SETTINGS</button>
+      <div class="controls">
+        <div><b>WASD</b> move</div><div><b>MOUSE</b> look</div>
+        <div><b>SHIFT</b> run</div><div><b>SPACE</b> jump</div>
+        <div><b>CTRL / C</b> crouch</div><div><b>E</b> interact</div>
+        <div><b>F</b> flashlight</div><div><b>R</b> throw brick</div>
+        <div><b>ESC</b> pause</div><div></div>
+      </div>
+      <p class="warn">Contains jump scares, flashing lights and loud sounds. Headphones recommended.</p>
+    </div>
+  </div>
+
+  <div id="pause" class="screen hidden">
+    <div class="panel">
+      <h2>PAUSED</h2>
+      <button id="btn-resume" class="big">RESUME</button>
+      <button class="btn-settings">SETTINGS</button>
+      <button class="btn-restart">RESTART</button>
+    </div>
+  </div>
+
+  <div id="settings" class="hidden">
+    <div class="panel small">
+      <h3>SETTINGS</h3>
+      <label>Graphics quality
+        <select id="set-quality"><option value="low">Low (fast)</option><option value="medium">Medium</option><option value="high">High</option></select>
+      </label>
+      <label class="row"><input type="checkbox" id="set-psx" /> PS1 mode (pixelation + vertex wobble)</label>
+      <label>Mouse sensitivity <input type="range" id="set-sens" min="0.2" max="3" step="0.1" /></label>
+      <label>Volume <input type="range" id="set-vol" min="0" max="1" step="0.05" /></label>
+      <label>Horror begins after
+        <select id="set-horror"><option value="3">3 minutes</option><option value="6">6 minutes</option><option value="11">11 minutes</option><option value="15">15 minutes</option></select>
+      </label>
+      <label class="row"><input type="checkbox" id="set-fps" /> Show real FPS</label>
+      <button id="btn-close-settings">CLOSE</button>
+    </div>
+  </div>
+
+  <div id="gameover" class="screen hidden">
+    <div class="panel">
+      <h2 class="r">YOU DIED IN 4090 CITY</h2>
+      <p id="go-stats"></p>
+      <button class="btn-restart big">TRY AGAIN</button>
+    </div>
+  </div>
+
+  <div id="ending" class="screen hidden">
+    <div class="panel">
+      <h2 class="g">YOU ESCAPED... FOR NOW</h2>
+      <p id="end-stats"></p>
+      <p class="tag">TO BE CONTINUED... RTX 5090</p>
+      <button class="btn-restart big">PLAY AGAIN</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

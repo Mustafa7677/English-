@@ -1,0 +1,591 @@
+// The city: roads, buildings, landmarks, lamps, doors, colliders and interactables.
+import * as THREE from 'three';
+import { mat, basic, box, cyl, facadeBox, canvasTex, textTex, rand, pick, clamp } from './util.js';
+import { makeHumanoid, makeChair, makeToilet, makeRTX } from './characters.js';
+
+export const HALF = 112;
+export const ROADS = [-60, 0, 60];
+const RW = 6; // half road width
+
+export class World {
+  constructor(G) {
+    this.G = G;
+    this.group = new THREE.Group();
+    this.colliders = [];
+    this.lamps = [];
+    this.doors = [];
+    this.interactables = [];
+    this.buildings = [];
+    this.dumpsters = [];
+    this.generators = [];
+    this.chairs = [];
+    this.mannequinSpots = [];
+    this.spots = {};
+    this.shake = 0;
+    this._tmp = new THREE.Vector3();
+    G.scene.add(this.group);
+    this.build();
+  }
+
+  // ---------- collision ----------
+  addCollider(minX, maxX, minZ, maxZ, minY = -1, maxY = 50, extra = {}) {
+    const c = { minX, maxX, minZ, maxZ, minY, maxY, enabled: true, ...extra };
+    this.colliders.push(c);
+    return c;
+  }
+  /** Collider for an axis-aligned box mesh centered at (x,y,z). */
+  solid(mesh, w, h, d) {
+    const p = mesh.position;
+    return this.addCollider(p.x - w / 2, p.x + w / 2, p.z - d / 2, p.z + d / 2, p.y - h / 2, p.y + h / 2);
+  }
+
+  floorAt(x, z, y) { return y < -10 ? -20 : 0; }
+
+  /** Push a vertical cylinder (pos = feet) out of colliders. Returns the last collider hit or null. */
+  resolve(pos, r, height = 1.8) {
+    let hit = null;
+    const y0 = pos.y + 0.35, y1 = pos.y + height;
+    for (let iter = 0; iter < 2; iter++) {
+      for (const c of this.colliders) {
+        if (!c.enabled || c.maxY < y0 || c.minY > y1) continue;
+        if (pos.x < c.minX - r || pos.x > c.maxX + r || pos.z < c.minZ - r || pos.z > c.maxZ + r) continue;
+        const cx = clamp(pos.x, c.minX, c.maxX), cz = clamp(pos.z, c.minZ, c.maxZ);
+        let dx = pos.x - cx, dz = pos.z - cz;
+        const d2 = dx * dx + dz * dz;
+        if (d2 > r * r) continue;
+        if (d2 < 1e-8) { // center inside box: push along the shallowest axis
+          const l = pos.x - c.minX, rr = c.maxX - pos.x, b = pos.z - c.minZ, f = c.maxZ - pos.z;
+          const m = Math.min(l, rr, b, f);
+          if (m === l) pos.x = c.minX - r; else if (m === rr) pos.x = c.maxX + r; else if (m === b) pos.z = c.minZ - r; else pos.z = c.maxZ + r;
+        } else {
+          const d = Math.sqrt(d2);
+          pos.x = cx + (dx / d) * r; pos.z = cz + (dz / d) * r;
+        }
+        hit = c;
+      }
+    }
+    return hit;
+  }
+
+  isFree(x, z, r = 0.5, y = 0) {
+    for (const c of this.colliders) {
+      if (!c.enabled || c.maxY < y + 0.3 || c.minY > y + 1.8) continue;
+      if (x > c.minX - r && x < c.maxX + r && z > c.minZ - r && z < c.maxZ + r) return false;
+    }
+    return Math.abs(x) < HALF - 1 && Math.abs(z) < HALF - 1;
+  }
+
+  /** 2D line-of-sight test against tall colliders. */
+  lineClear(ax, az, bx, bz, y = 1.5) {
+    const dx = bx - ax, dz = bz - az;
+    for (const c of this.colliders) {
+      if (!c.enabled || c.maxY < y || c.minY > y) continue;
+      let t0 = 0, t1 = 1;
+      if (Math.abs(dx) < 1e-9) { if (ax < c.minX || ax > c.maxX) continue; }
+      else {
+        let ta = (c.minX - ax) / dx, tb = (c.maxX - ax) / dx; if (ta > tb) [ta, tb] = [tb, ta];
+        t0 = Math.max(t0, ta); t1 = Math.min(t1, tb); if (t0 > t1) continue;
+      }
+      if (Math.abs(dz) < 1e-9) { if (az < c.minZ || az > c.maxZ) continue; }
+      else {
+        let ta = (c.minZ - az) / dz, tb = (c.maxZ - az) / dz; if (ta > tb) [ta, tb] = [tb, ta];
+        t0 = Math.max(t0, ta); t1 = Math.min(t1, tb); if (t0 > t1) continue;
+      }
+      return false;
+    }
+    return true;
+  }
+
+  addInteract(o) { this.interactables.push(o); return o; }
+  removeInteract(o) { const i = this.interactables.indexOf(o); if (i >= 0) this.interactables.splice(i, 1); }
+
+  // ---------- textures ----------
+  facadeTex(wall, win, litColor, litChance, seed = 0) {
+    const t = canvasTex(128, 128, (ctx) => {
+      ctx.fillStyle = wall; ctx.fillRect(0, 0, 128, 128);
+      for (let i = 0; i < 600; i++) { ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.15})`; ctx.fillRect(Math.random() * 128, Math.random() * 128, 2, 2); }
+      for (let cx = 0; cx < 4; cx++) for (let cy = 0; cy < 4; cy++) {
+        const lit = Math.random() < litChance;
+        ctx.fillStyle = lit ? litColor : win;
+        ctx.fillRect(cx * 32 + 9, cy * 32 + 8, 14, 16);
+        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(cx * 32 + 15, cy * 32 + 8, 2, 16);
+      }
+    });
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    return t;
+  }
+
+  groundTex(base, speck, lines) {
+    const t = canvasTex(64, 64, (ctx) => {
+      ctx.fillStyle = base; ctx.fillRect(0, 0, 64, 64);
+      for (let i = 0; i < 400; i++) { ctx.fillStyle = speck[i % speck.length]; ctx.fillRect(Math.random() * 64, Math.random() * 64, 1, 1); }
+      if (lines) { ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.strokeRect(0, 0, 64, 64); }
+    });
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    return t;
+  }
+
+  // ---------- build ----------
+  build() {
+    const g = this.group;
+    // ground
+    const groundT = this.groundTex('#1d1f1c', ['#262823', '#151613', '#2a2a26']);
+    groundT.repeat.set(150, 150);
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), mat('#ffffff', { map: groundT }));
+    ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; g.add(ground);
+
+    // roads
+    const roadT = canvasTex(32, 64, (ctx) => {
+      ctx.fillStyle = '#232523'; ctx.fillRect(0, 0, 32, 64);
+      for (let i = 0; i < 150; i++) { ctx.fillStyle = Math.random() < 0.5 ? '#2b2d2a' : '#1b1c1a'; ctx.fillRect(Math.random() * 32, Math.random() * 64, 1, 1); }
+      ctx.fillStyle = '#8a8250'; ctx.fillRect(15, 6, 2, 26);
+    });
+    roadT.wrapS = roadT.wrapT = THREE.RepeatWrapping;
+    for (const x of ROADS) {
+      const len = x === 0 ? 400 : HALF * 2;
+      const t = roadT.clone(); t.repeat.set(1, len / 8); t.needsUpdate = true;
+      const r = new THREE.Mesh(new THREE.PlaneGeometry(12, len), mat('#ffffff', { map: t }));
+      r.rotation.x = -Math.PI / 2; r.position.set(x, 0.02, x === 0 ? -88 : 0); r.receiveShadow = true; g.add(r);
+    }
+    for (const z of ROADS) {
+      const t = roadT.clone(); t.repeat.set(1, HALF * 2 / 8); t.needsUpdate = true;
+      const r = new THREE.Mesh(new THREE.PlaneGeometry(12, HALF * 2), mat('#ffffff', { map: t }));
+      r.rotation.x = -Math.PI / 2; r.rotation.z = Math.PI / 2; r.position.set(0, 0.025, z); r.receiveShadow = true; g.add(r);
+    }
+    // sidewalk blocks
+    const sideT = this.groundTex('#3a3b37', ['#44453f', '#30312d'], true);
+    const intervals = [[-HALF, -66], [-54, -6], [6, 54], [66, HALF]];
+    for (const [x0, x1] of intervals) for (const [z0, z1] of intervals) {
+      const t = sideT.clone(); t.repeat.set((x1 - x0) / 2, (z1 - z0) / 2); t.needsUpdate = true;
+      const s = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, z1 - z0), mat('#ffffff', { map: t }));
+      s.rotation.x = -Math.PI / 2; s.position.set((x0 + x1) / 2, 0.04, (z0 + z1) / 2); s.receiveShadow = true; g.add(s);
+    }
+
+    this.buildFacades();
+    // residential blocks
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+      if ((i === 1 || i === 2) && (j === 1 || j === 2)) continue; // landmark blocks
+      const [x0, x1] = intervals[i], [z0, z1] = intervals[j];
+      this.residentialBlock((x0 + x1) / 2, (z0 + z1) / 2, i === 0 && j === 1);
+    }
+    this.buildNvidia();
+    this.buildKindergarten();
+    this.buildSupermarket();
+    this.buildGasStation();
+    this.buildToilet();
+    this.buildBusStop();
+    this.buildTaxiStand();
+    this.buildBasement();
+    this.buildWallsAndGate();
+    this.buildLamps();
+    this.buildDumpsters();
+    this.buildPickups();
+
+    // freeze static matrices for speed (dynamic objects are flagged)
+    this.group.traverse((o) => { if (!o.userData.dynamic) { o.updateMatrix(); o.matrixAutoUpdate = false; } });
+  }
+
+  buildFacades() {
+    this.facades = [
+      mat('#ffffff', { map: this.facadeTex('#3b3632', '#111214', '#c9a85a', 0.12) }),
+      mat('#ffffff', { map: this.facadeTex('#2f3430', '#0e1110', '#a8b870', 0.08) }),
+      mat('#ffffff', { map: this.facadeTex('#403630', '#121010', '#d4b060', 0.15) }),
+      mat('#ffffff', { map: this.facadeTex('#2b2b30', '#0c0c10', '#8090a0', 0.1) }),
+    ];
+    this.roofMat = mat('#1a1a1a');
+  }
+
+  building(cx, cz, w, d, h, material = pick(this.facades)) {
+    const m = new THREE.Mesh(facadeBox(w, h, d), material);
+    m.position.set(cx, h / 2, cz); m.castShadow = true; m.receiveShadow = true;
+    m.userData.base = m.position.clone();
+    this.group.add(m);
+    this.group.add(box(w + 0.4, 0.4, d + 0.4, this.roofMat, cx, h + 0.2, cz));
+    this.addCollider(cx - w / 2, cx + w / 2, cz - d / 2, cz + d / 2, -1, h);
+    this.buildings.push(m);
+    return m;
+  }
+
+  residentialBlock(cx, cz, hatch) {
+    for (const ox of [-11, 11]) for (const oz of [-11, 11]) {
+      const w = rand(12, 16), d = rand(12, 16), h = pick([7, 10, 13, 16, 22, 28]);
+      this.building(cx + ox, cz + oz, w, d, h);
+    }
+    // alley mannequin spots (sleeper monsters woken by Buddy)
+    this.mannequinSpots.push(new THREE.Vector3(cx + rand(-2, 2), 0, cz + rand(-2, 2)));
+    if (hatch) {
+      const hm = box(1.4, 0.06, 1.4, mat('#3a3a32'), cx, 0.05, cz);
+      this.group.add(hm);
+      this.group.add(box(0.5, 0.08, 0.08, mat('#777'), cx, 0.1, cz + 0.4));
+      this.spots.hatch = new THREE.Vector3(cx, 0, cz);
+      this.mannequinSpots.pop();
+    }
+  }
+
+  buildNvidia() {
+    const cx = 31, cz = -38, w = 30, d = 24, h = 36;
+    const glassT = canvasTex(64, 64, (ctx) => {
+      ctx.fillStyle = '#060a06'; ctx.fillRect(0, 0, 64, 64);
+      ctx.strokeStyle = '#1e5c10'; ctx.lineWidth = 2; ctx.strokeRect(1, 1, 62, 62);
+      ctx.fillStyle = 'rgba(118,255,3,0.10)'; ctx.fillRect(4, 4, 56, 56);
+    });
+    glassT.wrapS = glassT.wrapT = THREE.RepeatWrapping;
+    const m = new THREE.Mesh(facadeBox(w, h, d, 3, 3), mat('#ffffff', { map: glassT, emissive: '#0a2a04' }));
+    m.position.set(cx, h / 2, cz); m.castShadow = true; m.receiveShadow = true; m.userData.base = m.position.clone();
+    this.group.add(m); this.buildings.push(m);
+    this.addCollider(cx - w / 2, cx + w / 2, cz - d / 2, cz + d / 2, -1, h);
+    const front = cz + d / 2;
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(22, 5.5), basic('#ffffff', { map: textTex('NVIDIA', { w: 512, h: 128, font: 'bold 110px Arial Black, sans-serif' }) }));
+    sign.position.set(cx, h - 5, front + 0.05); this.group.add(sign);
+    // glowing stripes
+    const g = basic('#76ff03');
+    for (const x of [-13, -6, 6, 13]) this.group.add(box(0.25, h - 10, 0.1, g, cx + x, (h - 10) / 2, front + 0.06, false));
+    // entrance + sliding doors
+    this.group.add(box(7, 4.5, 0.2, mat('#0a0a0a', { emissive: '#103a06' }), cx, 2.25, front + 0.02, false));
+    const dl = box(2.5, 4, 0.12, mat('#0f2a0a', { emissive: '#0c3006' }), cx - 1.25, 2, front + 0.15);
+    const dr = box(2.5, 4, 0.12, mat('#0f2a0a', { emissive: '#0c3006' }), cx + 1.25, 2, front + 0.15);
+    dl.userData.dynamic = dr.userData.dynamic = true;
+    this.group.add(dl, dr);
+    this.nvidiaDoors = { dl, dr, open: 0, target: 0 };
+    this.spots.nvidiaDoor = new THREE.Vector3(cx, 0, front + 0.9);
+    this.spots.nvidiaPlaza = new THREE.Vector3(cx, 0, -14);
+    this.spots.nvidiaVictim = new THREE.Vector3(cx + 7, 0, -13);
+    this.spots.nvidiaLight = new THREE.Vector3(cx, 7, -16);
+    // plaza glow tiles
+    for (let i = 0; i < 5; i++) this.group.add(box(1, 0.03, 1, basic('#2a7a08'), cx - 8 + i * 4, 0.06, front + 4, false));
+    this.generatorAt(new THREE.Vector3(cx, 0, cz - d / 2 - 2.2), 'Behind NVIDIA HQ');
+  }
+
+  buildKindergarten() {
+    const X0 = -42, X1 = -18, Z0 = -50, Z1 = -12, H = 4.2;
+    const wallM = mat('#5a4f48'), inner = mat('#3c3532'), floorM = mat('#2a2220');
+    const wall = (x0, x1, z0, z1, m = wallM) => {
+      const w = Math.max(0.3, x1 - x0), d = Math.max(0.3, z1 - z0);
+      const b = box(w, H, d, m, (x0 + x1) / 2, H / 2, (z0 + z1) / 2);
+      this.group.add(b);
+      this.addCollider((x0 + x1) / 2 - w / 2, (x0 + x1) / 2 + w / 2, (z0 + z1) / 2 - d / 2, (z0 + z1) / 2 + d / 2, -1, H);
+    };
+    // outer walls (front has the entrance at x -32..-28)
+    wall(X0, -32, Z1 - 0.15, Z1 + 0.15); wall(-28, X1, Z1 - 0.15, Z1 + 0.15);
+    wall(X0, X1, Z0 - 0.15, Z0 + 0.15);
+    wall(X0 - 0.15, X0 + 0.15, Z0, Z1); wall(X1 - 0.15, X1 + 0.15, Z0, Z1);
+    // corridor walls with doorways every 12m
+    const segs = [[-12, -17.2], [-18.8, -29.2], [-30.8, -41.2], [-42.8, -50]];
+    for (const [a, b] of segs) { wall(-32.15, -31.85, b, a, inner); wall(-28.15, -27.85, b, a, inner); }
+    for (const z of [-24, -36]) { wall(X0, -32, z - 0.15, z + 0.15, inner); wall(-28, X1, z - 0.15, z + 0.15, inner); }
+    // floor + roof
+    this.group.add(box(X1 - X0, 0.1, Z1 - Z0, floorM, (X0 + X1) / 2, 0.05, (Z0 + Z1) / 2));
+    const roof = box(X1 - X0 + 1, 0.4, Z1 - Z0 + 1, mat('#2a2522'), (X0 + X1) / 2, H + 0.2, (Z0 + Z1) / 2);
+    this.group.add(roof);
+    // faded sign + red windows
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(9, 1.4), mat('#ffffff', { map: textTex('KINDERGARTEN', { w: 512, h: 80, bg: '#4a3a40', fg: '#c49ab0', font: 'bold 54px monospace', glow: false }) }));
+    sign.position.set(-30, H + 0.9, Z1 + 0.2); this.group.add(sign);
+    const redWin = basic('#ff2010');
+    for (const x of [-39, -35, -24, -21]) this.group.add(box(1.6, 1.2, 0.05, redWin, x, 2.2, Z1 + 0.18, false));
+    for (const z of [-18, -30, -42]) { this.group.add(box(0.05, 1.2, 1.6, redWin, X0 - 0.18, 2.2, z, false)); this.group.add(box(0.05, 1.2, 1.6, redWin, X1 + 0.18, 2.2, z, false)); }
+    // red ceiling lights in the corridor (swappable for blackout)
+    this.kgLightOn = basic('#ff1a0a'); this.kgLightOff = mat('#200');
+    this.kgBulbs = [];
+    for (const z of [-16, -22, -28, -34, -40, -46]) {
+      const b = box(0.8, 0.08, 0.8, this.kgLightOn, -30, H - 0.1, z, false); b.userData.dynamic = true;
+      this.group.add(b); this.kgBulbs.push(b);
+    }
+    // front double door (real, closable)
+    this.makeDoor(new THREE.Vector3(-32, 0, Z1), 'x', 2, mat('#4a2a2a'), -1, 'Kindergarten door');
+    this.makeDoor(new THREE.Vector3(-28, 0, Z1), 'x', -2, mat('#4a2a2a'), 1, 'Kindergarten door');
+    // room doors (slam)
+    this.kgRoomDoors = [
+      this.makeDoor(new THREE.Vector3(-32, 0, -29.2), 'z', -1.6, mat('#3a2020'), -1, 'Door'),
+      this.makeDoor(new THREE.Vector3(-28, 0, -41.2), 'z', -1.6, mat('#3a2020'), 1, 'Door'),
+    ];
+    // furniture: tables, chairs that move on their own, mannequins
+    const tableM = mat('#4a3a2a');
+    for (const [x, z] of [[-37, -18], [-23, -30], [-37, -43], [-23, -18]]) {
+      const t = box(1.6, 0.08, 1, tableM, x, 0.7, z); this.group.add(t);
+      this.group.add(box(0.08, 0.7, 0.08, tableM, x - 0.7, 0.35, z - 0.4), box(0.08, 0.7, 0.08, tableM, x + 0.7, 0.35, z + 0.4));
+      this.addCollider(x - 0.8, x + 0.8, z - 0.5, z + 0.5, -1, 0.75);
+      for (let k = 0; k < 2; k++) {
+        const c = makeChair(); c.position.set(x + (k ? 1.2 : -1.2), 0, z + rand(-0.3, 0.3)); c.rotation.y = rand(0, 6);
+        c.userData.dynamic = true; c.traverse((o) => (o.userData.dynamic = true));
+        this.group.add(c); this.chairs.push(c);
+      }
+    }
+    this.kgMannequins = [];
+    for (const [x, z] of [[-40, -27], [-20, -45], [-40, -46]]) {
+      const r = makeHumanoid({ mannequin: true, scale: 1.0 });
+      r.root.position.set(x, 0, z); r.root.rotation.y = rand(0, 6);
+      r.root.userData.dynamic = true; r.root.traverse((o) => (o.userData.dynamic = true));
+      r.armR.rotation.x = -0.4; r.armL.rotation.z = 0.5;
+      this.group.add(r.root); this.kgMannequins.push(r);
+      this.addCollider(x - 0.3, x + 0.3, z - 0.3, z + 0.3, -1, 2);
+    }
+    // a rusty (adult) swing frame out front
+    const rust = mat('#4a2e1c');
+    this.group.add(box(0.12, 3, 0.12, rust, -46.5, 1.5, -6.5 - 5), box(0.12, 3, 0.12, rust, -46.5, 1.5, -6.5 - 1), box(0.12, 0.12, 4, rust, -46.5, 3, -9.5));
+    this.kg = { X0, X1, Z0, Z1, H };
+    this.spots.kgEntrance = new THREE.Vector3(-30, 0, -10);
+    this.spots.kgEnd = new THREE.Vector3(-30, 0, -48.5);
+  }
+
+  /** Hinged door. axis 'x' = door spans along x when closed; len signed; openDir = ±1 swing. */
+  makeDoor(hinge, axis, len, material, openDir, label) {
+    const pivot = new THREE.Group(); pivot.position.copy(hinge); pivot.userData.dynamic = true;
+    const L = Math.abs(len), s = Math.sign(len);
+    const panel = axis === 'x' ? box(L, 2.6, 0.1, material, s * L / 2, 1.3, 0) : box(0.1, 2.6, L, material, 0, 1.3, s * L / 2);
+    panel.userData.dynamic = true; pivot.add(panel); this.group.add(pivot);
+    const col = axis === 'x'
+      ? this.addCollider(Math.min(hinge.x, hinge.x + len), Math.max(hinge.x, hinge.x + len), hinge.z - 0.12, hinge.z + 0.12, -1, 2.6, { door: true })
+      : this.addCollider(hinge.x - 0.12, hinge.x + 0.12, Math.min(hinge.z, hinge.z + len), Math.max(hinge.z, hinge.z + len), -1, 2.6, { door: true });
+    const center = hinge.clone(); if (axis === 'x') center.x += len / 2; else center.z += len / 2;
+    const door = { pivot, col, open: false, angle: 0, target: 0, openDir, center, label };
+    door.col.ref = door;
+    this.doors.push(door);
+    this.addInteract({ pos: center.clone().setY(1.3), r: 2.4, label: () => (door.open ? 'Close ' : 'Open ') + label, act: () => this.toggleDoor(door) });
+    return door;
+  }
+
+  toggleDoor(door, force) {
+    door.open = force !== undefined ? force : !door.open;
+    door.target = door.open ? door.openDir * 1.6 : 0;
+    if (!door.open) this.G.audio.thud(door.center, 0.9); else this.G.audio.beep(door.center, 140, 0.15, 0.08, 'sawtooth');
+  }
+
+  buildSupermarket() {
+    const cx = -33, cz = 30, w = 26, d = 20, h = 6;
+    this.building(cx, cz, w, d, h, mat('#ffffff', { map: this.facadeTex('#4a4640', '#1a1c1a', '#d0e0d0', 0.4) }));
+    const front = cx + w / 2;
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(10, 1.5), basic('#ffffff', { map: textTex('SUPER MARKET 24/7', { w: 512, h: 80, bg: '#101010', fg: '#ff4040', font: 'bold 52px monospace' }) }));
+    sign.rotation.y = Math.PI / 2; sign.position.set(front + 0.06, h - 1.2, cz); this.group.add(sign);
+    this.marketSign = sign;
+    this.group.add(box(0.05, 2.5, 2.2, basic('#020202'), front + 0.03, 1.25, cz)); // dark doorway
+    const pivot = new THREE.Group(); pivot.position.set(front + 0.08, 0, cz - 1.05); pivot.userData.dynamic = true;
+    const p = box(0.08, 2.4, 2.1, mat('#556b6b', { emissive: '#081010' }), 0, 1.2, 1.05); p.userData.dynamic = true;
+    pivot.add(p); this.group.add(pivot);
+    this.marketDoor = { pivot, angle: 0, target: 0 };
+    this.spots.marketDoor = new THREE.Vector3(front + 1.0, 0, cz);
+    this.spots.roof = new THREE.Vector3(front - 0.4, h + 0.4, cz + 6);
+    this.spots.marketDumpster = new THREE.Vector3(front + 1.4, 0, cz + 6);
+  }
+
+  buildGasStation() {
+    const concrete = mat('#4a4a46'), red = mat('#6a1a14');
+    const canopy = box(16, 0.5, 10, red, 32, 5, 26); canopy.rotation.z = 0.06; canopy.rotation.x = -0.03; this.group.add(canopy);
+    for (const [x, z, hh] of [[25, 22, 5], [39, 22, 5], [25, 30, 5], [39, 30, 2.2]]) {
+      const p = box(0.4, hh, 0.4, concrete, x, hh / 2, z); this.group.add(p); this.solid(p, 0.4, hh, 0.4);
+    }
+    this.group.add(box(0.5, 0.3, 3, concrete, 40, 0.15, 31.5)); // broken pillar chunk
+    for (const x of [29, 35]) {
+      const p = box(0.8, 1.6, 0.6, mat('#7a7a70'), x, 0.8, 26); this.group.add(p); this.solid(p, 0.8, 1.6, 0.6);
+      this.group.add(box(0.6, 0.3, 0.05, basic('#203020'), x, 1.2, 26.31, false));
+    }
+    this.building(47, 46, 10, 14, 4.5, mat('#ffffff', { map: this.facadeTex('#3a3a36', '#151515', '#c0d0a0', 0.25) }));
+    const pole = cyl(0.15, 0.15, 8, 6, concrete, 14, 4, 14); this.group.add(pole); this.solid(pole, 0.3, 8, 0.3);
+    const sign = new THREE.Mesh(new THREE.BoxGeometry(3, 1.6, 0.3), basic('#fff', { map: textTex('GAS 4.09', { w: 256, h: 128, bg: '#300', fg: '#ff6a00', font: 'bold 60px monospace' }) }));
+    sign.position.set(14, 8.5, 14); this.group.add(sign);
+    for (let i = 0; i < 10; i++) this.group.add(box(rand(0.3, 1.2), rand(0.2, 0.6), rand(0.3, 1.2), concrete, rand(22, 44), 0.2, rand(32, 40)));
+    this.generatorAt(new THREE.Vector3(44, 0, 34), 'Gas station');
+    this.spots.dancer = new THREE.Vector3(22, 0, 18);
+    this.spots.gasStop = new THREE.Vector3(57, 0, 26);
+  }
+
+  buildToilet() {
+    const cx = 12.5, cz = 46, wallM = mat('#5c6a5c');
+    const parts = [[cx + 0.9, cz, 0.12, 2.6, 2], [cx, cz - 0.95, 1.9, 2.6, 0.12], [cx, cz + 0.95, 1.9, 2.6, 0.12]];
+    for (const [x, z, w, h, d] of parts) { const b = box(w, h, d, wallM, x, h / 2, z); this.group.add(b); this.solid(b, w, h, d); }
+    this.group.add(box(2.1, 0.15, 2.1, wallM, cx, 2.65, cz));
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.4), basic('#fff', { map: textTex('WC', { w: 128, h: 40, bg: '#222', fg: '#9cf', font: 'bold 30px monospace' }) }));
+    sign.rotation.y = -Math.PI / 2; sign.position.set(cx - 0.97, 2.9, cz); this.group.add(sign);
+    this.toiletDoor = this.makeDoor(new THREE.Vector3(cx - 0.95, 0, cz - 0.9), 'z', 1.8, mat('#3a4a3a'), -1, 'toilet door');
+    const t = makeToilet();
+    t.group.position.set(cx + 0.45, 0, cz); t.group.rotation.y = -Math.PI / 2;
+    t.group.userData.dynamic = true; t.group.traverse((o) => (o.userData.dynamic = true));
+    this.group.add(t.group);
+    this.toilet = t;
+    this.spots.toilet = new THREE.Vector3(cx, 0, cz);
+  }
+
+  buildBusStop() {
+    const x = 9, z = -45, glass = mat('#203030', { transparent: true, opacity: 0.6 }), metal = mat('#555');
+    const back = box(0.1, 2.4, 4, glass, x + 1, 1.2, z); this.group.add(back); this.solid(back, 0.2, 2.4, 4);
+    this.group.add(box(1.6, 0.1, 4.2, metal, x + 0.3, 2.45, z));
+    const bench = box(0.5, 0.08, 2.6, mat('#4a3a2a'), x + 0.5, 0.45, z); bench.userData.dynamic = true; this.group.add(bench);
+    this.bench = bench;
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), basic('#fff', { map: textTex('BUS', { w: 64, h: 64, bg: '#0a3a6a', fg: '#fff', font: 'bold 26px monospace', glow: false }) }));
+    sign.position.set(x - 0.8, 2.6, z + 2.4); sign.rotation.y = -Math.PI / 2; this.group.add(sign);
+    this.group.add(cyl(0.04, 0.04, 2.6, 4, metal, x - 0.8, 1.3, z + 2.4));
+    this.spots.bench = new THREE.Vector3(x + 0.5, 0, z);
+  }
+
+  buildTaxiStand() {
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.5), basic('#fff', { map: textTex('TAXI', { w: 128, h: 48, bg: '#c9a100', fg: '#111', font: 'bold 34px monospace', glow: false }) }));
+    sign.position.set(-7.4, 2.6, 48); sign.rotation.y = Math.PI / 2; this.group.add(sign);
+    this.group.add(cyl(0.04, 0.04, 2.6, 4, mat('#555'), -7.4, 1.3, 48.7));
+    this.spots.taxi = new THREE.Vector3(-3, 0, 48);
+  }
+
+  buildBasement() {
+    const cx = this.spots.hatch.x, cz = this.spots.hatch.z, Y = -20;
+    const wm = mat('#2e2a24');
+    this.group.add(box(14, 0.4, 14, mat('#1e1c18'), cx, Y - 0.2, cz));
+    this.group.add(box(14, 0.4, 14, wm, cx, Y + 4.2, cz));
+    const walls = [[cx - 7, cz, 0.4, 14], [cx + 7, cz, 0.4, 14], [cx, cz - 7, 14, 0.4], [cx, cz + 7, 14, 0.4]];
+    for (const [x, z, w, d] of walls) { const b = box(w, 4.4, d, wm, x, Y + 2, z); this.group.add(b); this.solid(b, w, 4.4, d); }
+    this.group.add(box(0.6, 4, 0.1, mat('#555'), cx, Y + 2, cz + 6.7)); // ladder
+    for (let i = 0; i < 8; i++) this.group.add(box(0.6, 0.05, 0.12, mat('#777'), cx, Y + 0.3 + i * 0.5, cz + 6.6));
+    // creepy shelves & a mannequin in the corner
+    for (const s of [-1, 1]) this.group.add(box(0.6, 2.2, 4, mat('#3a2e22'), cx + s * 6.3, Y + 1.1, cz - 2));
+    const r = makeHumanoid({ mannequin: true }); r.root.position.set(cx + 5.5, Y, cz + 5.5); r.root.rotation.y = -2.4;
+    r.root.userData.dynamic = true; r.root.traverse((o) => (o.userData.dynamic = true));
+    this.group.add(r.root); this.basementMannequin = r;
+    this.spots.basementSpawn = new THREE.Vector3(cx, Y, cz + 5.2);
+    this.spots.basementLight = new THREE.Vector3(cx, Y + 3.5, cz);
+    this.generatorAt(new THREE.Vector3(cx, Y, cz - 5), 'Hidden basement');
+    this.addInteract({ pos: new THREE.Vector3(cx, 0.5, cz), r: 2.2, label: 'Open the rusty hatch', act: (G) => G.player.teleport(this.spots.basementSpawn, Math.PI) });
+    this.addInteract({ pos: new THREE.Vector3(cx, Y + 1.2, cz + 6.5), r: 2.2, label: 'Climb the ladder', act: (G) => G.player.teleport(new THREE.Vector3(cx, 0, cz + 1.8), 0) });
+  }
+
+  generatorAt(pos, name) {
+    const grp = new THREE.Group(); grp.position.copy(pos); grp.userData.dynamic = true;
+    grp.add(box(1.6, 1.2, 1, mat('#3a4a2a'), 0, 0.6, 0));
+    grp.add(cyl(0.25, 0.25, 0.9, 8, mat('#222'), 0.5, 1.35, 0));
+    const lamp = box(0.2, 0.2, 0.2, basic('#ff2020'), -0.5, 1.3, 0.4, false); lamp.userData.dynamic = true; grp.add(lamp);
+    const lever = box(0.08, 0.5, 0.08, mat('#999'), -0.2, 1.4, 0.45); lever.rotation.x = 0.6; lever.userData.dynamic = true; grp.add(lever);
+    this.group.add(grp);
+    this.addCollider(pos.x - 0.8, pos.x + 0.8, pos.z - 0.5, pos.z + 0.5, pos.y - 1, pos.y + 1.2);
+    const gen = { pos, name, on: false, lamp, lever, hum: null };
+    gen.interact = this.addInteract({
+      pos: pos.clone().setY(pos.y + 1), r: 2.6,
+      label: () => (gen.on ? 'Generator running' : 'Start generator'),
+      act: (G) => G.director.startGenerator(gen),
+    });
+    this.generators.push(gen);
+    return gen;
+  }
+
+  buildWallsAndGate() {
+    const wm = mat('#2a2a28'), H = 9, T = 1;
+    const seg = (x0, x1, z0, z1) => { const b = box(x1 - x0, H, z1 - z0, wm, (x0 + x1) / 2, H / 2, (z0 + z1) / 2); this.group.add(b); this.solid(b, x1 - x0, H, z1 - z0); };
+    seg(-HALF - T, -6, -HALF - T, -HALF); seg(6, HALF + T, -HALF - T, -HALF);
+    seg(-HALF - T, HALF + T, HALF, HALF + T);
+    seg(-HALF - T, -HALF, -HALF, HALF); seg(HALF, HALF + T, -HALF, HALF);
+    // gate
+    const gm = mat('#3a1010', { emissive: '#150202' });
+    const gl = box(6, 8, 0.6, gm, -3, 4, -HALF - 0.5), gr = box(6, 8, 0.6, gm, 3, 4, -HALF - 0.5);
+    gl.userData.dynamic = gr.userData.dynamic = true;
+    this.group.add(gl, gr);
+    for (let i = 0; i < 5; i++) { gl.add(box(0.15, 7.6, 0.7, mat('#222'), -2.4 + i * 1.2, 0, 0)); gr.add(box(0.15, 7.6, 0.7, mat('#222'), -2.4 + i * 1.2, 0, 0)); }
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(6, 1.3), basic('#fff', { map: textTex('EXIT', { w: 256, h: 64, bg: '#100', fg: '#f22', font: 'bold 48px monospace' }) }));
+    sign.position.set(0, 10.2, -HALF + 0.2); this.group.add(sign);
+    this.group.add(box(14, 1, 1.2, wm, 0, 9.5, -HALF - 0.5));
+    this.gate = { gl, gr, open: 0, target: 0, col: this.addCollider(-6, 6, -HALF - 1, -HALF, -1, 9) };
+    this.spots.gate = new THREE.Vector3(0, 0, -HALF + 4);
+  }
+
+  buildLamps() {
+    const poleM = mat('#2a2a2a');
+    this.bulbOn = basic('#ffd890'); this.bulbOff = mat('#222'); this.bulbRed = basic('#ff2020');
+    this.poolOn = basic('#fff2c0', { transparent: true, opacity: 0.09, depthWrite: false, blending: THREE.AdditiveBlending });
+    this.poolRed = basic('#ff2010', { transparent: true, opacity: 0.12, depthWrite: false, blending: THREE.AdditiveBlending });
+    const poolGeo = new THREE.CircleGeometry(4.5, 14);
+    const add = (x, z, armDirX, armDirZ) => {
+      const pole = cyl(0.09, 0.12, 6, 5, poleM, x, 3, z); this.group.add(pole);
+      const col = this.addCollider(x - 0.15, x + 0.15, z - 0.15, z + 0.15, -1, 6, { pole: true });
+      const bx = x + armDirX * 1.2, bz = z + armDirZ * 1.2;
+      this.group.add(box(Math.abs(armDirX) * 1.2 + 0.08, 0.08, Math.abs(armDirZ) * 1.2 + 0.08, poleM, x + armDirX * 0.6, 6, z + armDirZ * 0.6));
+      const bulb = box(0.45, 0.15, 0.45, this.bulbOn, bx, 5.9, bz, false); bulb.userData.dynamic = true; this.group.add(bulb);
+      const pool = new THREE.Mesh(poolGeo, this.poolOn); pool.rotation.x = -Math.PI / 2; pool.position.set(bx, 0.07, bz); pool.userData.dynamic = true;
+      this.group.add(pool);
+      this.lamps.push({ pos: new THREE.Vector3(bx, 5.6, bz), base: new THREE.Vector3(x, 0, z), bulb, pool, state: 'on', flicker: Math.random() < 0.18, col });
+    };
+    let k = 0;
+    for (const r of ROADS) {
+      for (let p = -104; p <= 104; p += 16) {
+        if (ROADS.some((q) => Math.abs(p - q) < 9)) continue;
+        const s = (k++ % 2) ? 1 : -1;
+        add(r + s * 7.2, p, -s, 0);
+        add(p + 3, r + s * 7.2, 0, -s);
+      }
+    }
+  }
+
+  setLamp(l, state) {
+    l.state = state;
+    l.bulb.material = state === 'on' ? this.bulbOn : state === 'red' ? this.bulbRed : this.bulbOff;
+    l.pool.visible = state !== 'off';
+    l.pool.material = state === 'red' ? this.poolRed : this.poolOn;
+  }
+
+  buildDumpsters() {
+    const dm = mat('#1e3a22');
+    const add = (x, z, rot = 0) => {
+      const grp = new THREE.Group(); grp.position.set(x, 0, z); grp.rotation.y = rot; grp.userData.dynamic = true;
+      grp.add(box(1.8, 1.2, 1.1, dm, 0, 0.6, 0));
+      const lid = box(1.85, 0.08, 1.15, mat('#132616'), 0, 1.24, 0); lid.userData.dynamic = true; grp.add(lid);
+      this.group.add(grp);
+      const w = rot ? 1.1 : 1.8, d = rot ? 1.8 : 1.1;
+      const col = this.addCollider(x - w / 2, x + w / 2, z - d / 2, z + d / 2, -1, 1.25);
+      const dmp = { group: grp, lid, pos: new THREE.Vector3(x, 0, z), col };
+      this.dumpsters.push(dmp);
+      return dmp;
+    };
+    this.crashDumpster = add(8.4, -8.4);
+    this.roofDumpster = add(this.spots.marketDumpster.x, this.spots.marketDumpster.z, Math.PI / 2);
+    add(-8.4, 22); add(52, -8.4); add(-52, 8.4); add(8.4, 70); add(-70, -52); add(70, 52); add(-8.4, -80); add(64, -40);
+  }
+
+  buildPickups() {
+    // brick piles and flashlight batteries scattered around
+    const brickM = mat('#7a3020'), batM = basic('#e0c000');
+    const piles = [[4, 9], [-9, -30], [21, -10], [-16, 16], [50, 14], [-50, -14], [9, -60], [-60, 40], [60, -20], [-24, -56], [36, 56], [-36, 8]];
+    for (const [x, z] of piles) {
+      const grp = new THREE.Group(); grp.position.set(x + (Math.sign(x) || 1) * 0.5, 0, z); grp.userData.dynamic = true;
+      for (let i = 0; i < 4; i++) grp.add(box(0.22, 0.1, 0.11, brickM, rand(-0.2, 0.2), 0.05 + (i > 2 ? 0.1 : 0), rand(-0.2, 0.2)));
+      this.group.add(grp);
+      const it = this.addInteract({
+        pos: grp.position.clone().setY(0.4), r: 2.2, label: 'Take bricks (throw with R)',
+        act: (G) => { G.player.bricks += 3; G.audio.thud(null, 0.2); this.group.remove(grp); this.removeInteract(it); G.ui.toast('+3 bricks'); },
+      });
+    }
+    const bats = [[-4, -20], [24, 8], [-24, 50], [-70, -24], [40, -8], [0, -95], [-30, -8.5], [70, 30]];
+    for (const [x, z] of bats) {
+      const b = box(0.1, 0.22, 0.1, batM, x, 0.12, z, false); b.userData.dynamic = true; this.group.add(b);
+      const it = this.addInteract({
+        pos: b.position.clone().setY(0.4), r: 2, label: 'Take battery',
+        act: (G) => { G.player.battery = Math.min(100, G.player.battery + 45); this.group.remove(b); this.removeInteract(it); G.ui.toast('Flashlight battery +45%'); },
+      });
+    }
+  }
+
+  update(dt, G) {
+    // doors
+    for (const d of this.doors) {
+      d.angle += (d.target - d.angle) * Math.min(1, dt * 7);
+      d.pivot.rotation.y = d.angle;
+      d.col.enabled = Math.abs(d.angle) < 0.5;
+    }
+    const nd = this.nvidiaDoors;
+    nd.open += (nd.target - nd.open) * Math.min(1, dt * 4);
+    nd.dl.position.x = 31 - 1.25 - nd.open * 2.4; nd.dr.position.x = 31 + 1.25 + nd.open * 2.4;
+    const md = this.marketDoor; md.angle += (md.target - md.angle) * Math.min(1, dt * 6); md.pivot.rotation.y = md.angle;
+    const gt = this.gate;
+    gt.open += (gt.target - gt.open) * Math.min(1, dt * 0.8);
+    gt.gl.position.x = -3 - gt.open * 6; gt.gr.position.x = 3 + gt.open * 6;
+    gt.col.enabled = gt.open < 0.7;
+    // flicker
+    for (const l of this.lamps) {
+      if (l.flicker && l.state !== 'off' && Math.random() < dt * 3) {
+        const off = Math.random() < 0.5;
+        l.bulb.material = off ? this.bulbOff : (l.state === 'red' ? this.bulbRed : this.bulbOn);
+        l.pool.visible = !off;
+      }
+    }
+    if (this.marketSign) this.marketSign.visible = Math.random() > 0.03;
+    // finale: buildings shake
+    if (this.shake > 0) {
+      for (const b of this.buildings) {
+        b.position.set(b.userData.base.x + (Math.random() - 0.5) * this.shake, b.userData.base.y, b.userData.base.z + (Math.random() - 0.5) * this.shake);
+        b.updateMatrix();
+      }
+    }
+  }
+}
