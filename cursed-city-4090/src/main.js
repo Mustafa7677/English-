@@ -11,6 +11,7 @@ import { Lighting } from './lighting.js';
 import { Director } from './scenes.js';
 import { collideNPCs } from './npc.js';
 import { FX } from './fx.js';
+import { makeMapThumbs } from './scenes17.js';
 
 const QUALITY = {
   low: { scale: 0.5, lampLights: 3, shadows: false, shadowSize: 512, fogDensity: 0.04, far: 110 },
@@ -102,11 +103,14 @@ function startGame() {
   G.input.lock();
   G.ui.hideScreens();
   G.ui.show('hud');
-  if (G.state === 'menu') { G.state = 'play'; G.player.yaw = 0; if (G.startMode === 'metro') { G.player.pos.set(0, -120, 3); G.director.task(G.director.metroEnterTask); } }
+  if (G.state === 'menu') { G.state = 'play'; G.player.yaw = 0; if (G.startMode === 'metro') { G.player.pos.set(0, -120, 3); G.director.prepareMetroMap(); G.director.task(G.director.metroEnterTask); } }
   else if (G.state === 'paused') G.state = 'play';
 }
-document.getElementById('btn-start').onclick = () => { G.startMode = 'city'; startGame(); };
-document.getElementById('btn-metro').onclick = () => { G.startMode = 'metro'; startGame(); };
+document.getElementById('btn-start').onclick = () => { G.ui.hide('menu'); G.ui.show('mapselect'); };
+document.getElementById('btn-back').onclick = () => { G.ui.hide('mapselect'); G.ui.show('menu'); };
+document.getElementById('map-city').onclick = () => { G.startMode = 'city'; G.map = 'city'; startGame(); };
+document.getElementById('map-metro').onclick = () => { G.startMode = 'metro'; G.map = 'metro'; startGame(); };
+setTimeout(() => makeMapThumbs(G), 600);
 document.getElementById('btn-resume').onclick = startGame;
 document.querySelectorAll('.btn-restart').forEach((b) => (b.onclick = () => location.reload()));
 document.querySelectorAll('.btn-settings').forEach((b) => (b.onclick = () => document.getElementById('settings').classList.toggle('hidden')));
@@ -161,6 +165,7 @@ let fpsAcc = 0, fpsFrames = 0, fpsShown = 60;
 const tmp = new THREE.Vector3();
 
 function pushPlayer() {
+  if (G.map === 'metro') return;
   const P = G.player;
   if (P.inVehicle || P.hiding) return;
   for (const n of G.npcs) {
@@ -176,6 +181,7 @@ function pushPlayer() {
 }
 
 function updateNPCs(dt) {
+  if (G.map === 'metro') return; // the city is not simulated on the metro map
   const P = G.player.pos;
   for (const n of G.npcs) {
     if (n.removed || (n.hidden && !n.mem.tickHidden)) continue;

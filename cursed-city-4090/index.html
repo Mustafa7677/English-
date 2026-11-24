@@ -60,8 +60,7 @@
     <div class="panel">
       <h1>4090<small>THE CURSED CITY</small></h1>
       <p class="tag">a 3D brainrot horror simulator</p>
-      <button id="btn-start" class="big">WAKE UP</button>
-      <button id="btn-metro" class="big metro">METRO 404 <small>NEW LOCATION</small></button>
+      <button id="btn-start" class="big">PLAY</button>
       <button class="btn-settings">SETTINGS</button>
       <div class="controls">
         <div><b>WASD</b> move</div><div><b>MOUSE</b> look</div>
@@ -72,6 +71,29 @@
       </div>
       <p id="menu-stats" class="tag"></p>
       <p class="warn">Contains jump scares, flashing lights and loud sounds. Headphones recommended.</p>
+    </div>
+  </div>
+
+  <div id="mapselect" class="screen hidden">
+    <div class="panel wide">
+      <h2>CHOOSE A MAP</h2>
+      <div class="maps">
+        <button id="map-city" class="mapcard">
+          <canvas id="thumb-city" width="320" height="180"></canvas>
+          <span class="mtitle">4090 CITY</span>
+          <span class="mdesc">Wake up at 3:33 AM. Steal the RTX 4090, survive the horror shift, beat the giant robot and escape through the gate. Supermarket, gym, laundromat, kindergarten, noclip zone, night shift.</span>
+          <span class="mtags"><i>OPEN WORLD</i><i>STORY</i><i>BOSS</i><i>~30 MIN</i></span>
+          <span id="best-city" class="mbest"></span>
+        </button>
+        <button id="map-metro" class="mapcard metro">
+          <canvas id="thumb-metro" width="320" height="180"></canvas>
+          <span class="mtitle">METRO 404</span>
+          <span class="mdesc">You are lost under Almaty. 5 stations, 25 anomalies, 14 memes, 7 monsters. Nothing strange: walk forward. Anything strange: turn back.</span>
+          <span class="mtags"><i>ANOMALY HUNT</i><i>MEMES</i><i>SCREAMERS</i><i>~15 MIN</i></span>
+          <span id="best-metro" class="mbest"></span>
+        </button>
+      </div>
+      <button id="btn-back">BACK</button>
     </div>
   </div>
 
@@ -120,10 +142,10 @@
 
   <div id="ending" class="screen hidden">
     <div class="panel">
-      <h2 class="g">YOU ESCAPED... FOR NOW</h2>
+      <h2 id="end-title" class="g">YOU ESCAPED... FOR NOW</h2>
       <p id="end-stats"></p>
       <p id="end-rank" class="rank"></p>
-      <p class="tag">TO BE CONTINUED... RTX 5090</p>
+      <p id="end-tag" class="tag">TO BE CONTINUED... RTX 5090</p>
       <button class="btn-restart big">PLAY AGAIN</button>
     </div>
   </div>

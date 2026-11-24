@@ -140,6 +140,19 @@ button.metro small { display: block; font-size: 11px; letter-spacing: 3px; color
 .pn-app { font-size: 11px; color: #c0201a; font-weight: bold; letter-spacing: 1px; }
 .pn-text { font-size: 14px; margin-top: 3px; }
 @keyframes pnIn { from { opacity: 0; transform: translateY(-20px); } }
+.panel.wide { max-width: 860px; }
+.maps { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 18px 0; }
+.mapcard { display: flex; flex-direction: column; gap: 8px; text-align: left; padding: 12px; margin: 0; background: rgba(10,14,10,0.92); border: 2px solid #3a4a3a; letter-spacing: 0; transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s; }
+.mapcard:hover, .mapcard:focus-visible { transform: translateY(-4px); border-color: var(--green); box-shadow: 0 0 24px rgba(118,255,3,0.35); }
+.mapcard.metro:hover, .mapcard.metro:focus-visible { border-color: #ffcc00; box-shadow: 0 0 24px rgba(255,204,0,0.35); }
+.mapcard canvas { width: 100%; aspect-ratio: 16 / 9; height: auto; background: #050605; image-rendering: pixelated; border: 1px solid #222; }
+.mtitle { font-size: 26px; font-weight: bold; color: var(--green); letter-spacing: 3px; }
+.mapcard.metro .mtitle { color: #ffcc00; }
+.mdesc { font-size: 13px; color: #c8c8bc; line-height: 1.45; }
+.mtags { display: flex; flex-wrap: wrap; gap: 6px; }
+.mtags i { font-style: normal; font-size: 11px; letter-spacing: 1px; border: 1px solid #555; padding: 2px 6px; color: #aaa; }
+.mbest { font-size: 12px; color: #fd6; }
+@media (max-width: 700px) { .maps { grid-template-columns: 1fr; } }
 @keyframes blink { 50% { opacity: 0.2; } }
 @keyframes jitter { 0% { transform: translate(0,0); } 25% { transform: translate(-3px,2px); } 50% { transform: translate(3px,-2px); } 75% { transform: translate(-2px,-3px); } 100% { transform: translate(0,0); } }
 @keyframes alarm { 0%,100% { opacity: 0.1; } 50% { opacity: 1; } }

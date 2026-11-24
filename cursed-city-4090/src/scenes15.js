@@ -158,10 +158,8 @@ export function extendDirector15(D) {
     const msign = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.6), basic('#fff', { map: posterTex('METRO 404', '↓ PLATFORMS ↓', '#0a2a5a', '#ffcc00') }));
     msign.position.set(0, 2.6, 1.7); msign.rotation.y = Math.PI; ent.add(msign);
     ent.add(cyl(0.05, 0.05, 2.6, 6, mat('#555'), 0.7, 1.3, 1.7), cyl(0.05, 0.05, 2.6, 6, mat('#555'), -0.7, 1.3, 1.7));
-    G.scene.add(ent);
-    W.addCollider(ENTRANCE.x - 1.7, ENTRANCE.x + 1.7, ENTRANCE.z - 1.7, ENTRANCE.z - 1.5, -1, 1);
-    W.addInteract({ pos: ENTRANCE.clone().add(V(0, 1, 1)), r: 3.8, label: 'Go down into METRO 404', enabled: () => !M.active && !this.horrorRunning && !G.player.inVehicle, act: () => this.task(this.metroEnterTask) });
-    W.addInteract({ pos: V(-2.4, MY + 1.4, 3), r: 2.2, label: 'Emergency stairs: leave the metro', enabled: () => M.active, act: () => this.task(this.metroLeaveTask) });
+    // METRO 404 is a separate map now (chosen on the map select screen), so the city has no entrance to it
+    W.addInteract({ pos: V(-2.4, MY + 1.4, 3), r: 2.2, label: 'Give up: back to the map select', enabled: () => M.active, act: () => location.reload() });
     M.hud = document.getElementById('metrohud');
   };
 
@@ -281,6 +279,14 @@ export function extendDirector15(D) {
     const hadAnomaly = !!M.anomaly;
     const correct = direction === 'back' ? hadAnomaly : !hadAnomaly;
     G.ui.fade(1, 0.25); yield 0.3;
+    if (M.level === 0 && direction === 'forward' && G.map === 'metro') { // escaped the metro map
+      M.done = true; M.busy = false;
+      this.achieve('metro'); if (!M.mistakes) this.achieve('metroPerfect');
+      if (this.addAura) this.addAura(2000, 'escaped the metro');
+      G.audio.choir(3);
+      this.metroMapWin();
+      return;
+    }
     if (M.level === 0 && direction === 'forward') { // the surface!
       this.metroShutdown();
       Pl.pos.set(ENTRANCE.x, 0, ENTRANCE.z + 3); Pl.yaw = Math.PI;
