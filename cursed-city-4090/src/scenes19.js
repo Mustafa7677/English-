@@ -28,7 +28,7 @@ const SLOPE = ESC_RISE / -ESC_TOP;
 const NAMES = { 5: 'Райымбек батыр', 4: 'Жібек жолы', 3: 'Абай', 2: 'Туннель 404', 1: 'Шексіз бекет ∞', 0: 'Жер беті' };
 // [chance that a loop has a meme, monster speed + warning speed]
 const DIFF = { 5: [0.5, 0.86], 4: [0.58, 0.93], 3: [0.64, 1], 2: [0.71, 1.08], 1: [0.78, 1.16], 0: [0, 1] };
-const THEMES = {
+export const THEMES = {
   5: { floor: '#8a6a50', ceil: '#d8c8a8', panel: '#ffe6b0', light: 0xffd8a0, li: 9.5, fog: '#1a1208', density: 0.02 },
   4: { floor: '#56688a', ceil: '#24366a', panel: '#dce8ff', light: 0xd6e2ff, li: 9, fog: '#08101e', density: 0.021 },
   3: { floor: '#a09e96', ceil: '#e8e6e0', panel: '#ffffff', light: 0xfff2e6, li: 10, fog: '#141412', density: 0.018 },
@@ -51,7 +51,8 @@ export const MEMES = [
   ['cake', '🎂', 'Wedding cake', 'Той торты'], ['kaspi', '💸', 'Wrong Kaspi transfer', 'Қате аударым'],
   ['phone', '📱', 'Dropped phone', 'Несие телефон'], ['zyp25', '⏩', 'Зыпылдаған 25', 'Зыпылдақ'],
 ].map(([id, e, n, kz]) => ({ id, e, n, kz }));
-const MEME_BY_ID = Object.fromEntries(MEMES.map((m) => [m.id, m]));
+/** Look a meme up by id (the list can be replaced by a later chapter, so it is searched every time). */
+export function memeById(id) { return MEMES.find((m) => m.id === id); }
 
 Object.assign(ACH, {
   m_book: ['Meme Historian', 'Find all 24 memes of METRO 404'],
@@ -157,7 +158,7 @@ const WALLS = {
 };
 
 /** A canvas texture for text and pictures: pixelated up close, but still readable from far away. */
-function txt(w, h, paint) {
+export function txt(w, h, paint) {
   const t = canvasTex(w, h, paint);
   t.minFilter = THREE.LinearMipmapLinearFilter; t.generateMipmaps = true; t.anisotropy = 4;
   return t;
@@ -167,7 +168,7 @@ function fitText(ctx, text, maxW, size, font = 'Arial, sans-serif') {
   let s = size;
   do { ctx.font = `bold ${s}px ${font}`; s -= 2; } while (ctx.measureText(text).width > maxW && s > 10);
 }
-function medallion(ctx) { // the Raiymbek Batyr emblem: a gold ring, a batyr's helmet over crossed spears
+export function medallion(ctx) { // the Raiymbek Batyr emblem: a gold ring, a batyr's helmet over crossed spears
   ctx.translate(128, 128);
   ctx.fillStyle = '#d8a838'; ctx.beginPath(); ctx.arc(0, 0, 124, 0, 7); ctx.fill();
   ctx.fillStyle = '#5a1408'; ctx.beginPath(); ctx.arc(0, 0, 112, 0, 7); ctx.fill();
@@ -181,7 +182,7 @@ function medallion(ctx) { // the Raiymbek Batyr emblem: a gold ring, a batyr's h
   ctx.fillStyle = '#5a1408'; ctx.fillRect(-30, 14, 20, 8); ctx.fillRect(10, 14, 20, 8);    // eye slits
   ctx.fillStyle = '#f0c858'; ctx.textAlign = 'center'; ctx.font = 'bold 19px Georgia, serif'; ctx.fillText('РАЙЫМБЕК БАТЫР', 0, 78);
 }
-function silkMap(ctx) { // a mosaic map of the Silk Road through Kazakhstan
+export function silkMap(ctx) { // a mosaic map of the Silk Road through Kazakhstan
   ctx.fillStyle = '#0e2656'; ctx.fillRect(0, 0, 512, 280);
   ctx.strokeStyle = '#d8b048'; ctx.lineWidth = 6; ctx.strokeRect(6, 6, 500, 268);
   ctx.fillStyle = '#e8c050'; ctx.textAlign = 'center'; ctx.font = 'bold 30px Georgia, serif'; ctx.fillText('ЖІБЕК ЖОЛЫ · SILK ROAD', 256, 46);
@@ -191,7 +192,7 @@ function silkMap(ctx) { // a mosaic map of the Silk Road through Kazakhstan
   for (const [x, y, n] of pts) { ctx.beginPath(); ctx.arc(x, y, 7, 0, 7); ctx.fill(); ctx.fillText(n, x, y + 28); }
   for (let i = 0; i < 4; i++) camel(ctx, '#e8c050', 120 + i * 34, 110);
 }
-function abaiPlaque(ctx) { // dark granite with two gold lines of Abai's poem
+export function abaiPlaque(ctx) { // dark granite with two gold lines of Abai's poem
   ctx.fillStyle = '#151816'; ctx.fillRect(0, 0, 512, 256);
   for (let i = 0; i < 700; i++) { ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.06})`; ctx.fillRect(Math.random() * 512, Math.random() * 256, 2, 2); }
   ctx.strokeStyle = '#d8b048'; ctx.lineWidth = 4; ctx.strokeRect(10, 10, 492, 236);
@@ -199,7 +200,7 @@ function abaiPlaque(ctx) { // dark granite with two gold lines of Abai's poem
   ctx.font = 'italic bold 34px Georgia, serif'; ctx.fillText('«Ғылым таппай мақтанба,', 256, 96); ctx.fillText('Орын таппай баптанба...»', 256, 146);
   ctx.font = 'bold 22px Georgia, serif'; ctx.fillText('— Абай Құнанбайұлы', 300, 206);
 }
-function spray(ctx, text, color, w, h, size) { // graffiti: soft-edged spray paint with drips
+export function spray(ctx, text, color, w, h, size) { // graffiti: soft-edged spray paint with drips
   ctx.font = `bold ${size}px Impact, 'Arial Black', sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.shadowColor = color; ctx.shadowBlur = 8; ctx.fillStyle = color; ctx.fillText(text, w / 2, h / 2);
   ctx.shadowBlur = 0;
@@ -483,7 +484,7 @@ export function extendDirector19(D) {
 
   // ================================================================ METRO: the meme book
   P.collectMeme = function (id) {
-    const M = this.metro, m = MEME_BY_ID[id];
+    const M = this.metro, m = memeById(id);
     if (!m || this.G.map !== 'metro') return;
     if (!M.runMemes.has(id)) { M.runMemes.add(id); M.runOrder.push(id); }
     const book = loadJSON('cc4090-memes', {});
@@ -699,7 +700,7 @@ export function extendDirector19(D) {
       case 'manager': obj = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.3), new THREE.MeshBasicMaterial({ map: this.zone.mgrTex, transparent: true, side: THREE.DoubleSide })); obj.userData.billboard = true; break;
       default: { // everyone else rides down holding a cardboard sign
         rig = makeHumanoid({ ...randomLook(), outfit: pick(['jacket', 'hoodie', 'shirt']) }); mode = 'carry';
-        const s = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.48), new THREE.MeshBasicMaterial({ map: signTex(MEME_BY_ID[id]), side: THREE.DoubleSide }));
+        const s = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.48), new THREE.MeshBasicMaterial({ map: signTex(memeById(id) || { e: '❔', n: String(id) }), side: THREE.DoubleSide }));
         s.position.set(0, 1.42, 0.45); rig.root.add(s);
       }
     }
@@ -831,7 +832,7 @@ export function extendDirector19(D) {
 
   /** Text for the METRO 404 game-over screen. */
   P.metroDeathReport = function () {
-    const G = this.G, M = this.metro, t = G.time - (this.metroMapStart || 0), k = MEME_BY_ID[M.lastCatch];
+    const G = this.G, M = this.metro, t = G.time - (this.metroMapStart || 0), k = memeById(M.lastCatch);
     const where = M.level === 0 ? 'the exit hall' : `${6 - M.level}/5 · ${NAMES[M.level]}`;
     return {
       title: 'YOU DIED IN METRO 404',

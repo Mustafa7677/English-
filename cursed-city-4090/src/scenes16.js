@@ -56,7 +56,7 @@ function fitText(ctx, text, maxW, size) {
   do { ctx.font = `bold ${s}px Arial, sans-serif`; s -= 2; } while (ctx.measureText(text).width > maxW && s > 10);
 }
 
-function makeCockroach() {
+export function makeCockroach() {
   const g = new THREE.Group();
   const M = (c) => new THREE.MeshBasicMaterial({ color: c, depthTest: false, fog: false });
   const add = (m, w, h, d, x, y, z, rz = 0) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.rotation.z = rz; b.renderOrder = 1003; g.add(b); };

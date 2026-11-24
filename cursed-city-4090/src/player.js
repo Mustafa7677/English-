@@ -153,11 +153,13 @@ export class Player {
       this.pos.y = floor; this.vel.y = 0; this.grounded = true;
     } else if (this.pos.y > floor + 0.05) this.grounded = false;
     G.world.resolve(this.pos, this.radius, this.curHeight);
-    // keep inside the city unless the gate is open
+    // keep inside the city unless the gate is open (the METRO 404 map has no city around it, and its train is longer)
     const lim = 111.3;
-    this.pos.x = clamp(this.pos.x, -lim, lim);
-    if (this.pos.z > lim) this.pos.z = lim;
-    if (this.pos.z < -lim && (G.world.gate.open < 0.7 || Math.abs(this.pos.x) > 5.5)) this.pos.z = -lim;
+    if (!G.world.minimal) {
+      this.pos.x = clamp(this.pos.x, -lim, lim);
+      if (this.pos.z > lim) this.pos.z = lim;
+      if (this.pos.z < -lim && (G.world.gate.open < 0.7 || Math.abs(this.pos.x) > 5.5)) this.pos.z = -lim;
+    }
 
     // footsteps + head bob
     const hs = Math.hypot(this.vel.x, this.vel.z);

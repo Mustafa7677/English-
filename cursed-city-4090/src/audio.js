@@ -583,16 +583,21 @@ export class GameAudio {
     };
   }
 
-  /** Spoken line via the Web Speech API (optional) — subtitles are always shown by the UI. */
-  speak(text, { pitch = 1, rate = 1, volume = 1 } = {}) {
-    if (!this.voiceEnabled) return;
+  /** Speak a line (Web Speech API, optional: subtitles are always shown by the UI). lang 'kk': a Kazakh voice, else a Russian one (it can read Cyrillic), else nothing (subtitles only).
+   * Returns true if the line is being spoken. */
+  speak(text, { pitch = 1, rate = 1, volume = 1, lang = 'en' } = {}) {
+    if (!this.voiceEnabled) return false;
     try {
+      const all = speechSynthesis.getVoices(), has = (p) => all.filter((v) => v.lang && v.lang.toLowerCase().startsWith(p));
+      let voices = has(lang);
+      if (!voices.length && lang === 'kk') voices = has('ru');
+      if (!voices.length && lang !== 'en') return false;
       const u = new SpeechSynthesisUtterance(text);
       u.pitch = pitch; u.rate = rate; u.volume = volume * this.volume;
-      const voices = speechSynthesis.getVoices().filter((v) => v.lang && v.lang.startsWith('en'));
-      if (voices.length) u.voice = voices[Math.floor(Math.abs(pitch * 7)) % voices.length];
+      if (voices.length) { u.voice = voices[Math.floor(Math.abs(pitch * 7)) % voices.length]; u.lang = u.voice.lang; }
       speechSynthesis.speak(u);
-    } catch (e) { this.voiceEnabled = false; }
+      return true;
+    } catch (e) { this.voiceEnabled = false; return false; }
   }
 
   /** Random distant unexplained sounds. */
