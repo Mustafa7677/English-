@@ -18,6 +18,7 @@ import { extendDirector10 } from './scenes10.js';
 import { extendDirector11 } from './scenes11.js';
 import { extendDirector12 } from './scenes12.js';
 import { extendDirector13 } from './scenes13.js';
+import { extendDirector14 } from './scenes14.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 
@@ -1605,3 +1606,4 @@ extendDirector10(Director);
 extendDirector11(Director);
 extendDirector12(Director);
 extendDirector13(Director);
+extendDirector14(Director);

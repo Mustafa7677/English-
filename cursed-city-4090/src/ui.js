@@ -87,7 +87,7 @@ export class UI {
       : '<span style="color:#c00;font-size:28px">just kidding :)</span>';
   }
 
-  hurt(amount) { this.flash = Math.min(1, this.flash + amount / 30); }
+  hurt(amount) { this.flash = Math.min(this.maxFlash ?? 1, this.flash + amount / 30); }
 
   /** Full-screen procedural screamer. kind: 'horse' | 'robot' | 'ghost' | 'toilet' */
   screamer(kind = 'horse', dur = 0.9) {

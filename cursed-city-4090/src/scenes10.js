@@ -108,7 +108,7 @@ function paintFace(kind, variant) {
   return t;
 }
 const faceCache = {};
-function faceTextures(kind) { return faceCache[kind] || (faceCache[kind] = [paintFace(kind, 0), paintFace(kind, 1)]); }
+export function faceTextures(kind) { return faceCache[kind] || (faceCache[kind] = [paintFace(kind, 0), paintFace(kind, 1)]); }
 
 export function extendDirector10(D) {
   const P = D.prototype;

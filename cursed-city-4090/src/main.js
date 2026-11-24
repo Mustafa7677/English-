@@ -18,7 +18,7 @@ const QUALITY = {
   high: { scale: 1.0, lampLights: 10, shadows: true, shadowSize: 2048, fogDensity: 0.03, far: 200 },
 };
 
-const DEFAULTS = { quality: 'medium', psx: true, sensitivity: 1, volume: 0.8, horrorMinutes: 11, showFps: true, difficulty: 'normal' };
+const DEFAULTS = { quality: 'medium', psx: true, sensitivity: 1, volume: 0.8, horrorMinutes: 11, showFps: true, difficulty: 'normal', scare: 'normal' };
 function loadSettings() {
   try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('cc4090-settings') || '{}') }; } catch (e) { return { ...DEFAULTS }; }
 }
@@ -62,6 +62,8 @@ function applySettings() {
   G.player.setShadows(s.quality === 'high');
   camera.far = q.far; camera.updateProjectionMatrix();
   psx.snap.value = s.psx ? 120 : 0;
+  G.audio.scareScale = { mild: 0.45, normal: 1, extreme: 1.25 }[s.scare] || 1;
+  G.ui.maxFlash = s.scare === 'mild' ? 0.35 : 1;
   if (G.fx) G.fx.setEnabled(s.quality !== 'low');
   canvas.classList.toggle('pixel', s.psx);
   G.input.sensitivity = s.sensitivity;
@@ -88,6 +90,7 @@ function bindSettings() {
   hm.onchange = () => { s.horrorMinutes = parseFloat(hm.value); saveSettings(s); };
   fps.onchange = () => { s.showFps = fps.checked; saveSettings(s); };
   const diff = document.getElementById('set-diff'); diff.value = s.difficulty; diff.onchange = () => { s.difficulty = diff.value; saveSettings(s); };
+  const sc = document.getElementById('set-scare'); sc.value = s.scare; sc.onchange = () => { s.scare = sc.value; applySettings(); };
 }
 bindSettings();
 applySettings();
@@ -208,6 +211,17 @@ function frame() {
     // heartbeat when afraid
     G.heartT = (G.heartT || 0) - dt;
     if (P.fear > 0.45 && G.heartT <= 0) { G.heartT = 1.3 - P.fear * 0.8; G.audio.heartbeat(0.3 + P.fear * 0.5); }
+  } else if (G.state === 'dead') {
+    // death cam: you collapse to the ground while the city keeps going
+    G.time += dt;
+    const P = G.player, k = Math.min(1, dt * 3.5);
+    camera.position.y += (P.pos.y + 0.22 - camera.position.y) * k;
+    camera.rotation.z += (1.25 - camera.rotation.z) * k * 0.8;
+    camera.rotation.x += (-0.25 - camera.rotation.x) * k * 0.5;
+    updateNPCs(dt);
+    G.props.update(dt);
+    G.world.update(dt, G);
+    G.lighting.update(dt);
   } else if (G.state === 'cutscene') {
     G.time += dt;
     G.director.update(dt);

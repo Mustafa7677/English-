@@ -59,7 +59,7 @@ export class FX {
     if (!this.enabled) { G.renderer.render(G.scene, G.camera); return; }
     const u = this.film.uniforms;
     u.uTime.value = (u.uTime.value + dt) % 100;
-    u.uFear.value = G.player ? G.player.fear : 0;
+    u.uFear.value = Math.max(G.player ? G.player.fear : 0, G.fxFear || 0);
     const mood = G.lighting.mood;
     u.uTint.value.set(...(mood === 'horror' ? [1.08, 0.9, 0.88] : mood === 'finale' ? [0.9, 1.1, 0.88] : [0.92, 1.04, 0.96]));
     this.bloom.strength = G.rtxBoost ? 3.2 : mood === 'finale' ? 1.0 : 0.75;

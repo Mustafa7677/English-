@@ -229,6 +229,7 @@ export class GameAudio {
   /** Jump-scare sting: loud dissonant cluster + noise blast. */
   sting(vol = 0.9) {
     if (!this.ctx) return;
+    vol *= this.scareScale ?? 1;
     const t = this.t;
     for (let i = 0; i < 7; i++) {
       const o = this.ctx.createOscillator(); o.type = 'sawtooth';
@@ -289,6 +290,7 @@ export class GameAudio {
   /** The real screamer sound: distorted layered shriek + noise blast + sub hit. */
   bigScream(vol = 1) {
     if (!this.ctx) return;
+    vol *= this.scareScale ?? 1;
     const ctx = this.ctx, t = this.t;
     const sh = ctx.createWaveShaper(); const curve = new Float32Array(512);
     for (let i = 0; i < 512; i++) { const x = i / 256 - 1; curve[i] = Math.tanh(x * 6); }
@@ -308,6 +310,42 @@ export class GameAudio {
     const n = this._noiseSrc(); const ng = ctx.createGain(); this._env(ng, t, 0.002, vol * 0.8, 0.9); n.connect(ng).connect(this.master); n.start(t, 0, 1);
     const sub = ctx.createOscillator(); sub.type = 'sine'; sub.frequency.setValueAtTime(90, t); sub.frequency.exponentialRampToValueAtTime(30, t + 0.6);
     const subg = ctx.createGain(); this._env(subg, t, 0.003, vol, 0.7); sub.connect(subg).connect(this.master); sub.start(t); sub.stop(t + 0.8);
+  }
+
+  /** Felt more than heard: a very low unsettling rumble (build-up before scares). */
+  infrasound(dur = 6, vol = 0.5) {
+    if (!this.ctx) return;
+    const t = this.t, ctx = this.ctx;
+    [31, 37.5, 44].forEach((f) => {
+      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol * 0.3, t + dur * 0.7); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+      o.connect(g).connect(this.master); o.start(t); o.stop(t + dur + 0.1);
+    });
+  }
+
+  /** A whisper played "backwards": swelling filtered noise that cuts off abruptly. */
+  reverseWhisper(pos, vol = 0.4) {
+    if (!this.ctx) return;
+    const t = this.t, out = this._out(pos, 3);
+    for (let i = 0; i < 4; i++) {
+      const n = this._noiseSrc(); const bp = this.ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = rand(1500, 3200); bp.Q.value = 4;
+      const g = this.ctx.createGain(); const s = t + i * 0.35;
+      g.gain.setValueAtTime(0.0001, s); g.gain.exponentialRampToValueAtTime(vol, s + 0.3); g.gain.setValueAtTime(0.0001, s + 0.31);
+      n.connect(bp).connect(g).connect(out); n.start(s, rand(0, 1.5), 0.35);
+    }
+  }
+
+  click() { // a tiny tick (subliminal frames)
+    if (!this.ctx) return;
+    const t = this.t, n = this._noiseSrc(); const g = this.ctx.createGain(); this._env(g, t, 0.001, 0.3, 0.02);
+    n.connect(g).connect(this.master); n.start(t, 0, 0.03);
+  }
+
+  hiss(vol = 0.5) {
+    if (!this.ctx) return;
+    const t = this.t, n = this._noiseSrc(); const hp = this.ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3000;
+    const g = this.ctx.createGain(); this._env(g, t, 0.02, vol, 0.6);
+    n.connect(hp).connect(g).connect(this.master); n.start(t, 0, 0.7);
   }
 
   /** Ringing ears after a loud scare. */
