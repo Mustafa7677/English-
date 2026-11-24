@@ -60,6 +60,8 @@ h1 { font-size: 110px; margin: 0; color: var(--green); text-shadow: 0 0 30px var
 h1 small { display: block; font-size: 28px; color: var(--red); letter-spacing: 10px; text-shadow: 0 0 12px #f00; }
 h2 { font-size: 40px; letter-spacing: 4px; }
 .tag { color: #999; letter-spacing: 3px; }
+.cause { font-size: 20px; color: var(--ink); letter-spacing: 1px; }
+.cause span { color: var(--red); }
 .warn { color: #a66; font-size: 12px; margin-top: 18px; }
 button { font-family: inherit; font-size: 16px; color: var(--ink); background: #111; border: 1px solid #555; padding: 10px 22px; margin: 6px; cursor: pointer; letter-spacing: 2px; }
 button:hover { border-color: var(--green); color: var(--green); }

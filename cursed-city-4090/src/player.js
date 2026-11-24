@@ -32,6 +32,10 @@ export class Player {
     this.lastHit = -10;
     this.dead = false;
     this.knock = new THREE.Vector3();
+    this.hiding = null;
+    this.hideT = 0;
+    this.energy = 0;
+    this.lastKiller = null;
 
     const cam = G.camera;
     cam.rotation.order = 'YXZ';
@@ -62,8 +66,9 @@ export class Player {
     setTimeout(() => this.G.ui.fade(0, 0.6), 60);
   }
 
-  damage(amount, fromPos) {
-    if (this.dead || this.G.state !== 'play' || this.G.godMode) return;
+  damage(amount, fromPos, source) {
+    if (this.dead || this.G.state !== 'play' || this.G.godMode || this.hiding) return;
+    if (source) this.lastKiller = source;
     this.health -= amount;
     this.lastHit = this.G.time;
     this.fear = Math.min(1, this.fear + amount / 60);
@@ -90,6 +95,7 @@ export class Player {
     }
 
     if (this.inVehicle) { this.updateInVehicle(dt); return; }
+    if (this.hiding) { this.updateHiding(dt); return; }
 
     // ---- move ----
     let fx = 0, fz = 0;
@@ -106,6 +112,7 @@ export class Player {
     if (this.exhausted && this.stamina > 30) this.exhausted = false;
     const sprint = wantSprint && !this.exhausted;
     let speed = crouch ? 2.0 : sprint ? 7.6 : 4.0;
+    if (this.energy > 0) { this.energy -= dt; speed *= 1.25; this.stamina = 100; this.exhausted = false; }
     if (this.hasRTX) speed *= 0.97;
     this.stamina = clamp(this.stamina + (sprint ? -17 : moving ? 8 : 14) * dt, 0, 100);
     this.noise = sprint ? 22 : crouch ? 2.5 : moving ? 9 : 3;
@@ -197,6 +204,29 @@ export class Player {
     this.updateFear(dt);
   }
 
+  updateHiding(dt) {
+    const cam = this.G.camera, d = this.hiding;
+    this.pitch = clamp(this.pitch, -0.35, 0.25);
+    this.noise = 0;
+    this.flash.intensity = 0;
+    this.pos.set(d.pos.x, 0, d.pos.z);
+    cam.position.set(d.pos.x, 1.08, d.pos.z);
+    cam.rotation.set(this.pitch, this.yaw, 0);
+    this.viewRTX.visible = false;
+    this.health = Math.min(100, this.health + dt * 4);
+    this.updateInteract();
+    this.updateFear(dt);
+  }
+
+  drinkEnergy() {
+    const G = this.G;
+    this.energy = 15; this.stamina = 100;
+    G.audio.whoosh(0.4);
+    setTimeout(() => G.audio.laugh(null, 0.2, 0.5), 900);
+    G.ui.say(['*BURP* ...I can see sounds now.', '*BURP* My heart is doing a drum solo.', '*BURP* I could outrun a horse. Probably.'][Math.floor(Math.random() * 3)], 'You', 3, '#76ff03');
+    G.ui.toast('BRAINROT ENERGY: +25% speed, endless stamina for 15 s');
+  }
+
   throwBrick() {
     const G = this.G;
     if (this.bricks <= 0) { G.ui.toast('No bricks. Find a brick pile.'); return; }
@@ -248,7 +278,8 @@ export class Player {
     }
     target = Math.min(1, target);
     this.fear += (target - this.fear) * Math.min(1, dt * (target > this.fear ? 0.6 : 0.25));
-    if (this.fear > 0.97) this.health -= dt * 0.8; // pure terror hurts
+    if (this.hiding) target = Math.max(0, target - 0.35);
+    if (this.fear > 0.97) { this.health -= dt * 0.8; this.lastKiller = 'fear'; } // pure terror hurts
     if (this.health <= 0 && !this.dead) { this.dead = true; G.gameOver(); }
   }
 }

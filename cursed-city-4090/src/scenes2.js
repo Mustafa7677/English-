@@ -69,7 +69,7 @@ function makeLivingLamp() {
   return { group: g, bulb, pool, bulbM };
 }
 
-function makeShopCart() {
+export function makeShopCart() {
   const g = new THREE.Group();
   const wire = mat('#9a9a9a', { wireframe: true }), metal = mat('#777');
   g.add(box(0.7, 0.55, 1.0, wire, 0, 0.75, 0));
@@ -294,7 +294,7 @@ export function extendDirector(D) {
         if (n.distToPlayer() < 30) this.after(3.2, () => n.say(pick(['...that bus had no driver. Well. A horse.', 'I paid for a ticket!', 'Ow.']), 2.5));
       }
       if (inBox(Pl.pos) && !Pl.inVehicle) {
-        Pl.damage(20, g.position.clone().setZ(g.position.z + 6));
+        Pl.damage(20, g.position.clone().setZ(g.position.z + 6), 'bus');
         Pl.knock.set(0, 0, -16); Pl.vel.y = 7;
         this.achieve('busHit');
       }
@@ -378,7 +378,7 @@ export function extendDirector(D) {
           if (n.removed || n.hidden || n.rd || n.attached || n.kind === 'robot') continue;
           if (n.pos.distanceTo(w.position.clone().setY(n.pos.y)) < 0.8) { n.stopScriptIfInterruptible(); n.fallFrom({ dir, power: 4, up: 3, spin: 3, lie: 2 }); D.after(2.5, () => n.say('A WHEEL?! AT THIS HOUR?!', 2)); }
         }
-        if (Pl.pos.distanceTo(w.position.clone().setY(Pl.pos.y)) < 0.8 && v > 3) { Pl.damage(6, w.position); v *= 0.3; }
+        if (Pl.pos.distanceTo(w.position.clone().setY(Pl.pos.y)) < 0.8 && v > 3) { Pl.damage(6, w.position, 'wheel'); v *= 0.3; }
         v -= dt * 1.4;
         yield 0;
       }
@@ -432,7 +432,7 @@ export function extendDirector(D) {
       if (L.ft >= 1) {
         L.state = 'down'; L.t = 0;
         G.audio.clank(g.position, 1); G.audio.thud(g.position, 1); Pl.shake = 0.5;
-        if (d < 6) Pl.damage(4, g.position);
+        if (d < 6) Pl.damage(4, g.position, 'lamp');
         this.achieve('lamp'); this.eventsSeen++;
         this.after(1.8, () => G.ui.say('...I just wanted to be your light.', 'Lamp', 3.5, '#ffd890'));
         this.after(5.5, () => this.buddy && this.buddy.say('Did that lamp just... confess?', 3));
@@ -576,7 +576,7 @@ export function extendDirector(D) {
         caught = true;
         G.ui.say('I SAW THAT.', 'GIANT HORSE', 2.5, '#f44');
         G.audio.speak('I saw that.', { pitch: 0.05, rate: 0.6 });
-        Pl.damage(8); Pl.shake = 0.6;
+        Pl.damage(8, null, 'horse'); Pl.shake = 0.6;
       }
       yield 0;
     }

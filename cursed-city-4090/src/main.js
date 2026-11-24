@@ -122,6 +122,9 @@ G.gameOver = () => {
   setTimeout(() => {
     G.input.unlock();
     G.ui.hide('hud');
+    const [cause, joke] = G.director.deathLine();
+    document.getElementById('go-cause').textContent = cause;
+    document.getElementById('go-joke').textContent = joke;
     document.getElementById('go-stats').textContent = `You survived ${fmtTime(G.time)} in 4090 City and witnessed ${G.director.eventsSeen} cursed events.`;
     G.ui.show('gameover');
   }, 1300);
@@ -147,7 +150,7 @@ const tmp = new THREE.Vector3();
 
 function pushPlayer() {
   const P = G.player;
-  if (P.inVehicle) return;
+  if (P.inVehicle || P.hiding) return;
   for (const n of G.npcs) {
     if (n.removed || n.hidden || n.attached || n.rd) continue;
     if (Math.abs(n.pos.y - P.pos.y) > 1.8) continue;

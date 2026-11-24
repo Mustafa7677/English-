@@ -351,18 +351,74 @@ export class World {
   }
 
   buildSupermarket() {
-    const cx = -33, cz = 30, w = 26, d = 20, h = 6;
-    this.building(cx, cz, w, d, h, mat('#ffffff', { map: this.facadeTex('#4a4640', '#1a1c1a', '#d0e0d0', 0.4) }));
-    const front = cx + w / 2;
+    // enterable night-shift supermarket: x -46..-20, z 20..40, entrance on the east wall (x = -20)
+    const cx = -33, cz = 30, w = 26, d = 20, h = 6, X0 = cx - w / 2, X1 = cx + w / 2, Z0 = cz - d / 2, Z1 = cz + d / 2, T = 0.3;
+    const facade = mat('#ffffff', { map: this.facadeTex('#4a4640', '#1a1c1a', '#d0e0d0', 0.4) });
+    const wall = (x0, x1, z0, z1, y0 = 0, y1 = h, solid = true) => {
+      const m = new THREE.Mesh(facadeBox(x1 - x0, y1 - y0, z1 - z0), facade);
+      m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); m.castShadow = true; m.receiveShadow = true;
+      this.group.add(m);
+      if (solid) this.addCollider(x0, x1, z0, z1, y0 - 1, y1);
+    };
+    wall(X0, X0 + T, Z0, Z1); wall(X0, X1, Z1 - T, Z1); wall(X0, X1, Z0, Z0 + T);
+    wall(X1 - T, X1, Z0, cz - 1.05); wall(X1 - T, X1, cz + 1.05, Z1); wall(X1 - T, X1, cz - 1.05, cz + 1.05, 2.5, h, false);
+    // plain interior lining so the inside walls don't show the outside windows
+    const lining = mat('#6e7468');
+    const L = 0.02, e = T + 0.012;
+    this.group.add(box(L, h, d - 2 * T, lining, X0 + e, h / 2, cz, false), box(w - 2 * T, h, L, lining, cx, h / 2, Z1 - e, false), box(w - 2 * T, h, L, lining, cx, h / 2, Z0 + e, false));
+    this.group.add(box(L, h, cz - 1.05 - Z0 - T, lining, X1 - e, h / 2, (Z0 + T + cz - 1.05) / 2, false), box(L, h, Z1 - T - cz - 1.05, lining, X1 - e, h / 2, (cz + 1.05 + Z1 - T) / 2, false));
+    this.group.add(box(L, h - 2.5, 2.1, lining, X1 - e, (h + 2.5) / 2, cz, false));
+    this.group.add(box(w + 0.4, 0.4, d + 0.4, this.roofMat, cx, h + 0.2, cz));
+    const tileT = canvasTex(32, 32, (ctx) => { ctx.fillStyle = '#9a9c90'; ctx.fillRect(0, 0, 32, 32); ctx.fillStyle = '#7d8075'; ctx.fillRect(0, 0, 16, 16); ctx.fillRect(16, 16, 16, 16); for (let i = 0; i < 60; i++) { ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(Math.random() * 32, Math.random() * 32, 1, 1); } });
+    tileT.wrapS = tileT.wrapT = THREE.RepeatWrapping; tileT.repeat.set(w / 2, d / 2);
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(w - 0.6, d - 0.6), mat('#ffffff', { map: tileT }));
+    floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0.06, cz); floor.receiveShadow = true; this.group.add(floor);
+    const front = X1;
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(10, 1.5), basic('#ffffff', { map: textTex('SUPER MARKET 24/7', { w: 512, h: 80, bg: '#101010', fg: '#ff4040', font: 'bold 52px monospace' }) }));
     sign.rotation.y = Math.PI / 2; sign.position.set(front + 0.06, h - 1.2, cz); this.group.add(sign);
     this.marketSign = sign;
-    this.group.add(box(0.05, 2.5, 2.2, basic('#020202'), front + 0.03, 1.25, cz)); // dark doorway
+    // push door (closable, real collider)
     const pivot = new THREE.Group(); pivot.position.set(front + 0.08, 0, cz - 1.05); pivot.userData.dynamic = true;
-    const p = box(0.08, 2.4, 2.1, mat('#556b6b', { emissive: '#081010' }), 0, 1.2, 1.05); p.userData.dynamic = true;
+    const p = box(0.08, 2.4, 2.1, mat('#556b6b', { emissive: '#081010', transparent: true, opacity: 0.75 }), 0, 1.2, 1.05); p.userData.dynamic = true;
     pivot.add(p); this.group.add(pivot);
-    this.marketDoor = { pivot, angle: 0, target: 0 };
+    const md = this.marketDoor = { pivot, angle: 0, target: 0, col: this.addCollider(front - 0.2, front + 0.2, cz - 1.05, cz + 1.05, -1, 2.5, { door: true }) };
+    md.center = new THREE.Vector3(front, 0, cz);
+    this.addInteract({ pos: new THREE.Vector3(front, 1.3, cz), r: 2.6, label: () => (md.target ? 'Close the door' : 'Push the door (it says PUSH)'),
+      act: (G) => { md.target = md.target ? 0 : -1.4; if (!md.target) G.audio.thud(md.center, 0.8); } });
+    // aisles: shelves with instanced products
+    const metal = mat('#3a3d38'), plank = mat('#5a5d55');
+    const prodGeo = new THREE.BoxGeometry(0.24, 0.3, 0.2);
+    const shelfZ = [23.4, 26.7, 33.3, 36.6], SX0 = -43, SX1 = -27;
+    const prods = new THREE.InstancedMesh(prodGeo, mat('#ffffff'), shelfZ.length * 3 * 2 * 30);
+    const colors = ['#c03030', '#e0c030', '#3070c0', '#30a050', '#e07020', '#d0d0d0', '#8040a0', '#202020'].map((c) => new THREE.Color(c));
+    const m4 = new THREE.Matrix4(); let k = 0;
+    for (const z of shelfZ) {
+      this.group.add(box(SX1 - SX0, 2.2, 0.15, metal, (SX0 + SX1) / 2, 1.1, z));
+      for (const y of [0.35, 0.95, 1.55, 2.15]) this.group.add(box(SX1 - SX0, 0.05, 0.9, plank, (SX0 + SX1) / 2, y, z));
+      this.addCollider(SX0, SX1, z - 0.45, z + 0.45, -1, 2.2);
+      for (const y of [0.52, 1.12, 1.72]) for (const side of [-1, 1]) for (let i = 0; i < 30; i++) {
+        if (Math.random() < 0.15) continue; // some empty spots
+        m4.makeRotationY((Math.random() - 0.5) * 0.4).setPosition(SX0 + 0.3 + i * ((SX1 - SX0 - 0.6) / 29), y, z + side * 0.25);
+        prods.setMatrixAt(k, m4); prods.setColorAt(k, colors[Math.floor(Math.random() * colors.length)]); k++;
+      }
+    }
+    prods.count = k; prods.castShadow = false; prods.receiveShadow = true; this.group.add(prods);
+    const aisleSign = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.5), basic('#fff', { map: textTex('AISLE 4', { w: 128, h: 40, bg: '#123', fg: '#fff', font: 'bold 26px monospace', glow: false }) }));
+    aisleSign.position.set(-35, 3.2, 35); this.group.add(aisleSign);
+    // checkout counter
+    const counter = box(3, 1, 0.9, mat('#3a2a2a'), -24.5, 0.5, 35); this.group.add(counter); this.solid(counter, 3, 1, 0.9);
+    this.group.add(box(0.5, 0.35, 0.4, mat('#222'), -24.2, 1.18, 35), box(0.4, 0.04, 0.3, basic('#3f6'), -24.2, 1.38, 35.1, false));
+    // fluorescent ceiling panels (swappable for blackouts)
+    this.marketPanelOn = basic('#e8fff0'); this.marketPanelOff = mat('#1a1d1a');
+    this.marketPanels = [];
+    for (const z of [25, 30, 35]) for (const x of [-41, -33, -25]) {
+      const b = box(2.4, 0.08, 0.5, this.marketPanelOn, x, h - 0.1, z, false); b.userData.dynamic = true;
+      this.group.add(b); this.marketPanels.push(b);
+    }
+    this.market = { X0, X1, Z0, Z1 };
     this.spots.marketDoor = new THREE.Vector3(front + 1.0, 0, cz);
+    this.spots.marketInside = new THREE.Vector3(front - 2.5, 0, cz);
+    this.spots.cashier = new THREE.Vector3(-24.5, 0, 36.1);
     this.spots.roof = new THREE.Vector3(front - 0.4, h + 0.4, cz + 6);
     this.spots.marketDumpster = new THREE.Vector3(front + 1.4, 0, cz + 6);
   }
@@ -567,6 +623,7 @@ export class World {
     nd.open += (nd.target - nd.open) * Math.min(1, dt * 4);
     nd.dl.position.x = 31 - 1.25 - nd.open * 2.4; nd.dr.position.x = 31 + 1.25 + nd.open * 2.4;
     const md = this.marketDoor; md.angle += (md.target - md.angle) * Math.min(1, dt * 6); md.pivot.rotation.y = md.angle;
+    md.col.enabled = Math.abs(md.angle) < 0.5;
     const gt = this.gate;
     gt.open += (gt.target - gt.open) * Math.min(1, dt * 0.8);
     gt.gl.position.x = -3 - gt.open * 6; gt.gr.position.x = 3 + gt.open * 6;

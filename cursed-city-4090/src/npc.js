@@ -337,13 +337,13 @@ export class NPC {
       case 'horror': {
         const d = this.distToPlayer();
         const P = G.player.pos;
-        if (G.player.inVehicle || G.player.inBasement()) { this.anim = 'stare'; this.facePlayer(); return; }
+        if (G.player.inVehicle || G.player.inBasement() || G.player.hiding) { this.anim = 'stare'; this.facePlayer(); return; }
         if (d > 70) { this.steer(P.x, P.z, this.walkSpeed * 1.5, dt); return; }
         this.steer(P.x, P.z, this.runSpeed, dt, Math.random() < 0.5 ? 'run' : 'panic');
         if (Math.random() < dt * 0.035) { this.fallFrom({ dir: 'forward', power: 4.5, up: 0.5, lie: rand(0.6, 1.5) }); return; }
         if (d < 1.15 && this.hitCd <= 0) {
           this.hitCd = 2;
-          G.player.damage(this.damage, this.pos);
+          G.player.damage(this.damage, this.pos, this.mem.mannequin ? 'mannequin' : 'citizen');
           this.fallFrom({ dir: 'backward', power: 3, up: 1, lie: rand(1.5, 2.5) });
         }
         return;

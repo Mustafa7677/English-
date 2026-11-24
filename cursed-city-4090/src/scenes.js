@@ -7,6 +7,7 @@ import {
 } from './characters.js';
 import { mat, cyl, rand, pick, shuffle, clamp, angleWrap } from './util.js';
 import { extendDirector } from './scenes2.js';
+import { extendDirector3 } from './scenes3.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 
@@ -587,10 +588,11 @@ export class Director {
         return;
       }
       const P = G.player.pos;
+      if (G.player.hiding) { n.anim = 'stare'; return; }
       n.steer(P.x, P.z, n.runSpeed, dt, 'creep');
       n.rig.phase += dt * 6;
       if (n.distToPlayer() < 1.15 && n.hitCd <= 0) {
-        n.hitCd = 2; G.player.damage(n.damage, n.pos);
+        n.hitCd = 2; G.player.damage(n.damage, n.pos, 'mannequin');
         n.fallFrom({ dir: 'backward', power: 2.5, lie: 1, silent: true });
       }
     };
@@ -754,7 +756,7 @@ export class Director {
       else { m.chaseT = Math.max(0, (m.chaseT ?? 0) - dt * 2); if (Math.hypot(pp.x - n.pos.x, pp.z - n.pos.z) > 3) tgt = pp; }
       holder = 'none';
     } else if (n.distToPlayer() < 20) tgt = P.pos;
-    if (P.inBasement() || P.inVehicle) tgt = null;
+    if (P.inBasement() || P.inVehicle || P.hiding) tgt = null;
     if (!tgt) { n.anim = 'idle'; n.turnTo(n.heading + dt * 0.8, dt, 1); return; }
     const before = Math.sin(n.rig.phase);
     n.steer(tgt.x, tgt.z, speed, dt, 'walk');
@@ -769,7 +771,7 @@ export class Director {
       n.hitCd = 2.2;
       if (holder === 'player' || tgt === P.pos) {
         if (boss || !m.scared) { m.scared = true; this.jumpscare('robot'); }
-        P.damage(boss ? 28 : 18, n.pos);
+        P.damage(boss ? 28 : 18, n.pos, 'robot');
       } else if (holder === 'woman') this.womanDrop();
     }
   }
@@ -1330,7 +1332,7 @@ export class Director {
       yield A.chase(14, 5.8, { reach: 1.1 });
       yield A.call(() => {
         nn.hostile = false;
-        if (nn.distToPlayer() < 1.3) { G.player.damage(nn.damage, nn.pos); nn.fallFrom({ dir: 'backward', power: 2, lie: 1.5 }); }
+        if (nn.distToPlayer() < 1.3) { G.player.damage(nn.damage, nn.pos, 'citizen'); nn.fallFrom({ dir: 'backward', power: 2, lie: 1.5 }); }
       });
       yield A.say('...whatever. I have a bedtime.');
     });
@@ -1564,3 +1566,4 @@ export class Director {
 }
 
 extendDirector(Director);
+extendDirector3(Director);
