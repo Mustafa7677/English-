@@ -421,7 +421,7 @@ export class GameAudio {
   loop(kind, pos) {
     if (!this.ctx) return { setPos() {}, stop() {}, setGain() {} };
     const ctx = this.ctx;
-    const panner = this._out(pos, kind === 'music' ? 4 : 3);
+    const panner = this._out(pos, kind === 'music' ? 4 : kind === 'nextbot' ? 6 : 3);
     const gain = ctx.createGain(); gain.gain.value = 1; gain.connect(panner);
     const nodes = [];
     let interval = null;
@@ -462,6 +462,32 @@ export class GameAudio {
         }
         i++;
       }, 190);
+    } else if (kind === 'buzz') {
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 120;
+      const o2 = ctx.createOscillator(); o2.type = 'square'; o2.frequency.value = 240.4;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400;
+      const g = ctx.createGain(); g.gain.value = 0.035;
+      o.connect(lp); o2.connect(lp); lp.connect(g).connect(gain); o.start(); o2.start(); nodes.push(o, o2);
+    } else if (kind === 'nextbot') {
+      // loud, catchy, distorted chase loop
+      const seq = [440, 523, 659, 523, 415, 523, 622, 523, 392, 494, 587, 494, 415, 523, 622, 784];
+      const sh = ctx.createWaveShaper(); const cv = new Float32Array(256); for (let i = 0; i < 256; i++) { const x = i / 128 - 1; cv[i] = Math.tanh(x * 3); } sh.curve = cv;
+      const out = ctx.createGain(); out.gain.value = 0.5; sh.connect(out).connect(gain);
+      let i = 0;
+      interval = setInterval(() => {
+        const t = ctx.currentTime;
+        const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = seq[i % seq.length];
+        const g = ctx.createGain(); this._env(g, t, 0.004, 0.3, 0.12); o.connect(g).connect(sh); o.start(t); o.stop(t + 0.15);
+        if (i % 4 === 0) { const b = ctx.createOscillator(); b.type = 'sawtooth'; b.frequency.value = seq[i % seq.length] / 4; const bg = ctx.createGain(); this._env(bg, t, 0.004, 0.5, 0.3); b.connect(bg).connect(sh); b.start(t); b.stop(t + 0.35); }
+        i++;
+      }, 135);
+    } else if (kind === 'musicbox') {
+      const mel = [1046, 1318, 1568, 1318, 1174, 1396, 1760, 1396, 1046, 1318, 1568, 2093, 1975, 1568, 1318, 1174];
+      let i = 0;
+      interval = setInterval(() => {
+        const t = ctx.currentTime, o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = mel[i++ % mel.length];
+        const g = ctx.createGain(); this._env(g, t, 0.003, 0.14, 0.6); o.connect(g).connect(gain); o.start(t); o.stop(t + 0.7);
+      }, 360);
     } else if (kind === 'laughs') {
       interval = setInterval(() => { if (Math.random() < 0.6) this.laugh(pos, 0.35, rand(0.8, 1.4)); }, 2200);
     } else if (kind === 'breath') {

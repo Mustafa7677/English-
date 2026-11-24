@@ -193,6 +193,15 @@ function buildAnimalHead(B, skin, kind) {
     B.add(cm('#5a3010'), 0.07, 0.24, 0.12, -0.18, 0.12, 0, 0, 0, 0.25); B.add(cm('#5a3010'), 0.07, 0.24, 0.12, 0.18, 0.12, 0, 0, 0, -0.25); // floppy ears
     for (const s of [-1, 1]) { B.add(white, 0.06, 0.05, 0.012, s * 0.08, 0.24, 0.163); B.add(dark, 0.03, 0.045, 0.014, s * 0.08, 0.24, 0.168); }
     B.add(pink, 0.06, 0.03, 0.08, 0, 0.02, 0.3);                // tongue
+  } else if (kind === 'monkey') {
+    B.add(skin, 0.34, 0.34, 0.3, 0, 0.18, 0);
+    B.add(cm('#d8b890'), 0.26, 0.2, 0.08, 0, 0.14, 0.14);       // face
+    B.add(cm('#d8b890'), 0.18, 0.1, 0.08, 0, 0.06, 0.19);       // muzzle
+    for (const s of [-1, 1]) {
+      B.add(skin, 0.06, 0.16, 0.14, s * 0.2, 0.2, 0); B.add(pink, 0.02, 0.1, 0.09, s * 0.23, 0.2, 0.01); // big ears
+      B.add(white, 0.06, 0.05, 0.012, s * 0.06, 0.2, 0.185); B.add(dark, 0.03, 0.045, 0.014, s * 0.06, 0.2, 0.19);
+    }
+    B.add(dark, 0.1, 0.02, 0.012, 0, 0.04, 0.235);
   } else if (kind === 'cat') {
     B.add(skin, 0.34, 0.3, 0.3, 0, 0.17, 0);
     B.add(skin, 0.07, 0.12, 0.06, -0.11, 0.37, 0, 0, 0, 0.2); B.add(skin, 0.07, 0.12, 0.06, 0.11, 0.37, 0, 0, 0, -0.2);
@@ -329,6 +338,8 @@ export function pose(rig, mode, dt, t, speed = 0) {
       T.alz = 2.3 + Math.sin(t * 6) * 0.15; T.arz = -2.3 - Math.sin(t * 6) * 0.15; T.alx = -0.4; T.arx = -0.4; T.sx = -0.12; T.hx = -0.15; T.by = Math.abs(Math.sin(t * 3)) * 0.03; break;
     case 'press':
       T.llx = -1.5; T.lrx = -1.5; T.by = -0.45; T.alx = -2.75 + Math.sin(t * 2) * 0.1; T.arx = -2.75 + Math.sin(t * 2) * 0.1; T.sx = -0.2; break;
+    case 'sixseven':
+      T.alx = -1.25 + Math.sin(t * 6) * 0.55; T.arx = -1.25 - Math.sin(t * 6) * 0.55; T.alz = 0.25; T.arz = -0.25; T.hy = Math.sin(t * 3) * 0.2; T.by = Math.abs(Math.sin(t * 6)) * 0.04; break;
     case 'peck': {
       const b = Math.max(0, Math.sin(t * 7));
       T.sx = 0.9 + b * 0.45; T.hx = 0.3; T.llx = -0.9; T.lrx = -0.9; T.by = -0.35; T.alx = 0.8; T.arx = 0.8; T.alz = 0.3; T.arz = -0.3; break;

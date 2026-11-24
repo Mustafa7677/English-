@@ -116,6 +116,8 @@ export class Player {
       if (I.is('KeyA', 'ArrowLeft')) fx -= 1;
       if (I.is('KeyD', 'ArrowRight')) fx += 1;
     }
+    if (this.downT > 0) { this.downT -= dt; fx = 0; fz = 0; this.roll += (0.55 - this.roll) * Math.min(1, dt * 8); }
+    else this.roll = (this.roll || 0) * Math.max(0, 1 - dt * 5);
     const moving = fx !== 0 || fz !== 0;
     const crouch = !this.locked && I.is('ControlLeft', 'ControlRight', 'KeyC');
     const wantSprint = !this.locked && I.is('ShiftLeft', 'ShiftRight') && moving && !crouch && fz <= 0;
@@ -186,7 +188,8 @@ export class Player {
     if (G.time - this.lastHit > 6) this.health = Math.min(100, this.health + dt * 2.5);
     this.updateFear(dt);
 
-    this.curHeight = lerp(this.curHeight, crouch ? 1.0 : this.height, Math.min(1, dt * 10));
+    this.curHeight = lerp(this.curHeight, this.downT > 0 ? 0.4 : crouch ? 1.0 : this.height, Math.min(1, dt * 10));
+    this.crouching = crouch;
     this.applyCamera(dt);
   }
 
@@ -199,7 +202,7 @@ export class Player {
       this.pos.x + Math.cos(this.yaw) * bobX + (Math.random() - 0.5) * sh,
       this.pos.y + this.curHeight + bobY + (Math.random() - 0.5) * sh,
       this.pos.z - Math.sin(this.yaw) * bobX + (Math.random() - 0.5) * sh);
-    cam.rotation.set(this.pitch, this.yaw, (Math.random() - 0.5) * sh * 0.3);
+    cam.rotation.set(this.pitch, this.yaw, (Math.random() - 0.5) * sh * 0.3 + (this.roll || 0));
     this.viewRTX.visible = this.hasRTX && !this.inVehicle;
     if (this.viewRTX.visible) this.viewRTX.position.y = -0.26 + Math.sin(this.bob * 2) * 0.012;
   }

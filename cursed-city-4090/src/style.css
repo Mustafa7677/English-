@@ -107,6 +107,28 @@ label.row input { margin-right: 8px; }
 #pauseface { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); height: 92vh; width: auto; opacity: 0; pointer-events: none; transition: opacity 7s ease-in; filter: blur(1px); }
 #pauseface.show { opacity: 0.2; }
 #pause .panel { position: relative; z-index: 1; }
+#aura { margin-top: 6px; font-size: 13px; color: #fd6; }
+#aurapops { position: fixed; right: 18px; top: 46%; z-index: 7; pointer-events: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.aurapop { font: bold 18px 'Courier New', monospace; text-shadow: 2px 2px 0 #000; animation: auraUp 2.6s ease-out forwards; }
+.aurapop.up { color: #ffe040; } .aurapop.down { color: #ff4040; }
+@keyframes auraUp { 0% { opacity: 0; transform: translateY(20px) scale(1.3); } 15% { opacity: 1; transform: translateY(0) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-30px); } }
+#polaroid { position: fixed; left: 24px; top: 36%; width: 260px; background: #f4f0e6; color: #222; padding: 10px 10px 14px; z-index: 9; transform: rotate(-4deg); box-shadow: 0 8px 26px rgba(0,0,0,0.6); font-family: 'Courier New', monospace; pointer-events: none; }
+#polaroid img { width: 100%; display: block; image-rendering: pixelated; }
+#polaroid .cap { font-weight: bold; font-size: 13px; margin-top: 8px; }
+#polaroid .views { font-size: 12px; color: #a00; margin-top: 4px; }
+#journal { position: fixed; inset: 6vh 8vw; z-index: 26; background: rgba(8,10,8,0.96); border: 1px solid #555; padding: 18px 24px; overflow-y: auto; font-size: 13px; }
+#journal h2 { margin: 0 0 6px; color: var(--green); font-size: 26px; }
+#journal h3 { color: #fd6; font-size: 14px; letter-spacing: 2px; margin: 14px 0 6px; }
+#journal ul { list-style: none; padding: 0; margin: 0; } #journal li { margin: 4px 0; color: #ccc; } #journal li.done { color: #7f7; }
+#journal .rumours li { color: #bbb; font-style: italic; }
+.jstats { color: #ddd; } .jstats b { color: #fd6; }
+.jcols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.jphotos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.jphotos figure { margin: 0; } .jphotos img { width: 100%; display: block; } .jphotos figcaption { font-size: 11px; color: #fd6; }
+.jhint { color: #777; text-align: right; }
+#nightshift { position: fixed; top: 120px; left: 50%; transform: translateX(-50%); z-index: 7; background: rgba(0,0,0,0.7); border: 1px solid #446; padding: 8px 16px; text-align: center; font-size: 14px; color: #cde; pointer-events: none; }
+#nightshift small { color: #889; }
+@media (max-width: 700px) { .jcols { grid-template-columns: 1fr; } }
 @keyframes blink { 50% { opacity: 0.2; } }
 @keyframes jitter { 0% { transform: translate(0,0); } 25% { transform: translate(-3px,2px); } 50% { transform: translate(3px,-2px); } 75% { transform: translate(-2px,-3px); } 100% { transform: translate(0,0); } }
 @keyframes alarm { 0%,100% { opacity: 0.1; } 50% { opacity: 1; } }

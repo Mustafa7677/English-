@@ -227,6 +227,14 @@ function frame() {
   G.audio.updateListener(camera);
   updateResolution();
   if (!G.fakeCrash && !(G.freezeT > 0)) G.fx.render(dt);
+  if (G.photoRequest && !G.fakeCrash) {
+    G.photoRequest = false;
+    try {
+      const pc = document.createElement('canvas'); pc.width = 320; pc.height = 180;
+      pc.getContext('2d').drawImage(renderer.domElement, 0, 0, 320, 180);
+      G.director.takePhoto(pc.toDataURL('image/jpeg', 0.75));
+    } catch (e) { /* capture failed */ }
+  }
   G.input.endFrame();
 }
 frame();
