@@ -23,7 +23,7 @@ Object.assign(ACH, {
 });
 Object.assign(DEATHS, { manager: ['Caught by The Manager.', 'Your overtime will be unpaid.'] });
 
-function paintManager() {
+export function paintManager() {
   const c = document.createElement('canvas'); c.width = 512; c.height = 600;
   const ctx = c.getContext('2d');
   ctx.translate(256, 280);

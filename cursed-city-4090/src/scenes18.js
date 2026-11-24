@@ -107,7 +107,7 @@ export function extendDirector18(D) {
     if (!M.pool18) M.pool18 = shuffle(HYBRID.slice()).slice(0, 13);
     if (!M.bag18 || !M.bag18.length) M.bag18 = shuffle(M.pool18.slice());
     let a = null;
-    if (M.level > 0 && !M.freshStart && Math.random() < 0.62) {
+    if (M.level > 0 && !M.freshStart && Math.random() < (M.memeChance || 0.62)) {
       a = M.bag18.pop();
       if (a === M.prev && M.bag18.length) { M.bag18.unshift(a); a = M.bag18.pop(); }
     }
@@ -206,7 +206,7 @@ export function extendDirector18(D) {
     M.hud.innerHTML = `<b>METRO 404 · ${M.level === 0 ? 'EXIT HALL' : `${6 - M.level}/5 ${NAMES[M.level]}`}</b> · caught/mistakes ${M.mistakes}<br><small>No meme → forward to the train · MEME → it turns into a SCREAMER: turn back in time!</small>`;
     const T = M.t18;
     if (!T || T.state === 'done' || M.caught) return;
-    T.t += dt;
+    T.t += dt * (T.state === 'turn' ? (M.fuseMul || 1) : 1);
     const dist = (p) => Math.hypot(P0.x - p.x, P0.z - p.z);
     const face = (rig) => { rig.root.rotation.y = Math.atan2(P0.x - rig.root.position.x, P0.z - rig.root.position.z); };
     const say = (text, who, color = '#ccc', dur = 3) => G.ui.say(text, who, dur, color);
@@ -217,6 +217,7 @@ export function extendDirector18(D) {
     };
     const turn = (fn) => { T.state = 'turn'; T.t = 0; alert(); if (fn) fn(); };
     const chase = (rig, sp) => {
+      sp *= M.speedMul || 1;
       const p = rig.root.position, d = dist(p) || 1;
       p.x += (P0.x - p.x) / d * sp * dt; p.z += (P0.z - p.z) / d * sp * dt;
       face(rig); rig.phase += dt * (2 + sp * 1.9); pose(rig, 'run', dt, G.time, sp);

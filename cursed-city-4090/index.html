@@ -56,46 +56,52 @@
     </div>
   </div>
 
-  <div id="menu" class="screen">
+  <div id="menu" class="screen landing">
     <div class="panel">
       <h1>4090<small>THE CURSED CITY</small></h1>
-      <p class="tag">a 3D brainrot horror simulator</p>
-      <button id="btn-start" class="big">PLAY</button>
+      <p class="tag">a 3D brainrot horror · 2 separate maps · 2 бөлек карта</p>
+      <button id="btn-start" class="big">PLAY · ОЙНАУ</button>
       <button class="btn-settings">SETTINGS</button>
-      <div class="controls">
-        <div><b>WASD</b> move</div><div><b>MOUSE</b> look</div>
-        <div><b>SHIFT</b> run</div><div><b>SPACE</b> jump</div>
-        <div><b>CTRL / C</b> crouch</div><div><b>E</b> interact</div>
-        <div><b>F</b> flashlight</div><div><b>R / RMB</b> throw brick</div>
-        <div><b>LEFT CLICK</b> kick</div><div><b>M</b> map</div><div><b>J</b> journal</div><div><b>P</b> photo</div><div><b>ESC</b> pause</div>
-      </div>
       <p id="menu-stats" class="tag"></p>
       <p class="warn">Contains jump scares, flashing lights and loud sounds. Headphones recommended.</p>
     </div>
   </div>
 
-  <div id="mapselect" class="screen hidden">
+  <div id="mapselect" class="screen landing hidden">
     <div class="panel wide">
-      <h2>CHOOSE A MAP</h2>
+      <h2>CHOOSE A MAP <small>КАРТА ТАҢДА</small></h2>
       <div class="maps">
-        <button id="map-city" class="mapcard">
-          <canvas id="thumb-city" width="320" height="180"></canvas>
+        <button id="map-city" class="mapcard city">
+          <span class="shot shot-city"><span class="shot-label">MAP 1</span></span>
           <span class="mtitle">4090 CITY</span>
-          <span class="mdesc">Wake up at 3:33 AM. Steal the RTX 4090, survive the horror shift, beat the giant robot and escape through the gate. Supermarket, gym, laundromat, kindergarten, noclip zone, night shift.</span>
+          <span class="mdesc">Wake up at 3:33 AM in a cursed city. Steal the RTX 4090, survive the horror shift, beat the giant robot and escape through the gate. Supermarket, gym, laundromat, kindergarten, noclip zone, night shift.</span>
           <span class="mtags"><i>OPEN WORLD</i><i>STORY</i><i>BOSS</i><i>~30 MIN</i></span>
           <span id="best-city" class="mbest"></span>
         </button>
         <button id="map-metro" class="mapcard metro">
-          <canvas id="thumb-metro" width="320" height="180"></canvas>
+          <span class="shot shot-metro"><span class="shot-label">MAP 2</span></span>
           <span class="mtitle">METRO 404</span>
-          <span class="mdesc">You are lost under Almaty. 5 stations, 18 memes that turn into screamers. No meme: walk forward. A meme appears? Turn back before it turns!</span>
-          <span class="mtags"><i>MEME → SCREAMER</i><i>5 STATIONS</i><i>TRAIN</i><i>~15 MIN</i></span>
+          <span class="mdesc">You fell asleep in the last train. Now you are lost under Almaty: 5 stations, each with its own look and harder than the last. 18 memes that turn into SCREAMERS, 6 train events, an escalator to the surface... and a meme book to fill.</span>
+          <span class="mtags"><i>MEME → SCREAMER</i><i>5 STATIONS</i><i>MEME BOOK</i><i>~15 MIN</i></span>
           <span id="best-metro" class="mbest"></span>
         </button>
       </div>
+      <p class="tag small">Each map is its own game: only the map you choose is loaded. Direct links: <a href="?map=city">?map=city</a> · <a href="?map=metro">?map=metro</a></p>
       <button id="btn-back">BACK</button>
     </div>
   </div>
+
+  <div id="titlecard" class="screen hidden">
+    <div class="panel tc">
+      <div id="tc-kicker" class="tc-kicker"></div>
+      <h2 id="tc-title"></h2>
+      <p id="tc-tag" class="tc-tag"></p>
+      <div id="tc-rules" class="tc-rules"></div>
+      <button id="btn-go" class="big" disabled>LOADING…</button>
+      <div class="tc-links"><button class="btn-maps">◀ OTHER MAP</button><button class="btn-settings">SETTINGS</button></div>
+    </div>
+  </div>
+  <div id="skiphint" class="hidden">[E] skip · өткізу</div>
 
   <div id="pause" class="screen hidden">
     <div class="panel">
@@ -103,6 +109,7 @@
       <button id="btn-resume" class="big">RESUME</button>
       <button class="btn-settings">SETTINGS</button>
       <button class="btn-restart">RESTART</button>
+      <button class="btn-maps">CHOOSE MAP</button>
     </div>
   </div>
 
@@ -136,7 +143,9 @@
       <p id="go-joke" class="tag"></p>
       <p id="go-stats"></p>
       <p id="go-rank" class="rank"></p>
+      <div id="go-memes" class="memegrid small"></div>
       <button class="btn-restart big">TRY AGAIN</button>
+      <button class="btn-maps">OTHER MAP</button>
     </div>
   </div>
 
@@ -146,7 +155,9 @@
       <p id="end-stats"></p>
       <p id="end-rank" class="rank"></p>
       <p id="end-tag" class="tag">TO BE CONTINUED... RTX 5090</p>
+      <div id="end-memes" class="memegrid small"></div>
       <button class="btn-restart big">PLAY AGAIN</button>
+      <button class="btn-maps">OTHER MAP</button>
     </div>
   </div>
 

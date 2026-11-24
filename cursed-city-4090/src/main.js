@@ -1,4 +1,7 @@
-// Boot, settings, game state machine and the main loop.
+// Boot, settings, map select and the main loop.
+// The two maps are two separate games: nothing 3D is built until a map is chosen, and then ONLY that map is
+// built (4090 CITY never builds the metro, METRO 404 never builds the city).
+// Links: ?map=city and ?map=metro open a map directly, ?maps opens the map select.
 import * as THREE from 'three';
 import { psx } from './util.js';
 import { GameAudio } from './audio.js';
@@ -11,7 +14,7 @@ import { Lighting } from './lighting.js';
 import { Director } from './scenes.js';
 import { collideNPCs } from './npc.js';
 import { FX } from './fx.js';
-import { makeMapThumbs } from './scenes17.js';
+import { mapCardStats } from './scenes19.js';
 
 const QUALITY = {
   low: { scale: 0.5, lampLights: 3, shadows: false, shadowSize: 512, fogDensity: 0.04, far: 110 },
@@ -25,7 +28,30 @@ function loadSettings() {
 }
 function saveSettings(s) { try { localStorage.setItem('cc4090-settings', JSON.stringify(s)); } catch (e) { /* storage blocked */ } }
 
-const canvas = document.getElementById('game');
+const CONTROLS_CITY = [['WASD', 'move'], ['MOUSE', 'look'], ['SHIFT', 'run'], ['SPACE', 'jump'], ['CTRL / C', 'crouch'], ['E', 'interact'],
+  ['F', 'flashlight'], ['R / RMB', 'throw brick'], ['LEFT CLICK', 'kick'], ['M', 'map'], ['J', 'journal'], ['P', 'photo'], ['ESC', 'pause']];
+const CONTROLS_METRO = [['WASD', 'move'], ['MOUSE', 'look'], ['SHIFT', 'run'], ['E', 'interact / skip intro'], ['F', 'flashlight'],
+  ['J', 'meme book'], ['ESC', 'pause']];
+const controlsHTML = (list) => `<div class="controls">${list.map(([k, v]) => `<div><b>${k}</b> ${v}</div>`).join('')}</div>`;
+const MAPS = {
+  city: {
+    kicker: 'MAP 1 · КАРТА 1', title: '4090 CITY',
+    tag: 'Wake up at 3:33 AM in a cursed city. Steal the RTX 4090, survive the horror shift, beat the giant robot and escape through the gate.',
+    rules: `${controlsHTML(CONTROLS_CITY)}<p class="tc-note">The horror shift begins after the time set in SETTINGS.</p>`,
+  },
+  metro: {
+    kicker: 'MAP 2 · КАРТА 2', title: 'METRO 404',
+    tag: 'You fell asleep in the last train. Now you are lost under Almaty.',
+    rules: '<ol class="tc-list"><li>No meme → walk <b>forward</b> to the train.</li>' +
+      '<li>A <b>MEME</b> appears → it turns into a <b class="r">SCREAMER</b>. <b>Turn back</b> before it does.</li>' +
+      '<li>Caught → this station starts again. Wrong way → back to station 1.</li>' +
+      '<li>5 stations, each harder than the last. Then the escalator to the surface.</li></ol>' +
+      `${controlsHTML(CONTROLS_METRO)}<p class="tc-note">📒 Every meme you meet goes into the meme book (24 in total).</p>`,
+  },
+};
+
+const $ = (id) => document.getElementById(id);
+const canvas = $('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
 renderer.setSize(window.innerWidth, window.innerHeight, false);
 renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -36,7 +62,7 @@ const camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerH
 const params = new URLSearchParams(location.search);
 const G = {
   scene, camera, renderer,
-  npcs: [], time: 0, dt: 0, frame: 0, state: 'menu',
+  npcs: [], time: 0, dt: 0, frame: 0, state: 'menu', map: null, booted: false,
   gravityScale: 1, renderScaleMul: 1, godMode: params.has('god'),
   settings: loadSettings(),
 };
@@ -45,13 +71,24 @@ window.G = G; // handy for debugging from the console
 G.input = new Input(canvas);
 G.ui = new UI();
 G.audio = new GameAudio();
-G.lighting = new Lighting(G);
-G.world = new World(G);
-G.props = new Props(G);
-G.player = new Player(G);
-G.director = new Director(G);
-G.director.init();
-G.fx = new FX(G);
+G.quality = QUALITY[G.settings.quality] || QUALITY.medium;
+
+/** Build the chosen map, and nothing else. */
+function boot(map) {
+  if (G.booted) return;
+  G.map = map; G.startMode = map;
+  G.lighting = new Lighting(G);
+  G.world = new World(G, { minimal: map === 'metro' });
+  G.props = new Props(G);
+  G.player = new Player(G);
+  G.director = new Director(G);
+  G.director.init();
+  G.fx = new FX(G);
+  G.booted = true;
+  applySettings();
+  if (map === 'metro') G.director.prepareMetroBackdrop();
+  G.state = 'ready';
+}
 
 // ---------------- settings ----------------
 let appliedScale = -1;
@@ -59,18 +96,20 @@ function applySettings() {
   const s = G.settings, q = QUALITY[s.quality] || QUALITY.medium;
   G.quality = q;
   renderer.shadowMap.enabled = q.shadows;
-  G.lighting.configure(q);
-  G.player.setShadows(s.quality === 'high');
   camera.far = q.far; camera.updateProjectionMatrix();
   psx.snap.value = s.psx ? 120 : 0;
   G.audio.scareScale = { mild: 0.45, normal: 1, extreme: 1.25 }[s.scare] || 1;
   G.ui.maxFlash = s.scare === 'mild' ? 0.35 : 1;
-  if (G.fx) G.fx.setEnabled(s.quality !== 'low');
   canvas.classList.toggle('pixel', s.psx);
   G.input.sensitivity = s.sensitivity;
   G.audio.setVolume(s.volume);
+  if (G.booted) {
+    G.lighting.configure(G.map === 'metro' ? { ...q, lampLights: 0 } : q); // the metro has no street lamps
+    G.player.setShadows(s.quality === 'high');
+    G.fx.setEnabled(s.quality !== 'low');
+    scene.traverse((o) => { if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => (m.needsUpdate = true)); } });
+  }
   appliedScale = -1;
-  scene.traverse((o) => { if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => (m.needsUpdate = true)); } });
   saveSettings(s);
 }
 function updateResolution() {
@@ -81,8 +120,7 @@ function updateResolution() {
 
 function bindSettings() {
   const s = G.settings;
-  const q = document.getElementById('set-quality'), p = document.getElementById('set-psx'), sens = document.getElementById('set-sens'),
-    vol = document.getElementById('set-vol'), hm = document.getElementById('set-horror'), fps = document.getElementById('set-fps');
+  const q = $('set-quality'), p = $('set-psx'), sens = $('set-sens'), vol = $('set-vol'), hm = $('set-horror'), fps = $('set-fps');
   q.value = s.quality; p.checked = s.psx; sens.value = s.sensitivity; vol.value = s.volume; hm.value = String(s.horrorMinutes); fps.checked = s.showFps;
   q.onchange = () => { s.quality = q.value; applySettings(); };
   p.onchange = () => { s.psx = p.checked; applySettings(); };
@@ -90,32 +128,72 @@ function bindSettings() {
   vol.oninput = () => { s.volume = parseFloat(vol.value); applySettings(); };
   hm.onchange = () => { s.horrorMinutes = parseFloat(hm.value); saveSettings(s); };
   fps.onchange = () => { s.showFps = fps.checked; saveSettings(s); };
-  const diff = document.getElementById('set-diff'); diff.value = s.difficulty; diff.onchange = () => { s.difficulty = diff.value; saveSettings(s); };
-  const sc = document.getElementById('set-scare'); sc.value = s.scare; sc.onchange = () => { s.scare = sc.value; applySettings(); };
+  const diff = $('set-diff'); diff.value = s.difficulty; diff.onchange = () => { s.difficulty = diff.value; saveSettings(s); };
+  const sc = $('set-scare'); sc.value = s.scare; sc.onchange = () => { s.scare = sc.value; applySettings(); };
 }
 bindSettings();
 applySettings();
 
-// ---------------- state machine ----------------
+// ---------------- screens: landing → map select → title card → game ----------------
 let hadLock = false;
 function startGame() {
-  G.audio.init();
-  G.input.lock();
-  G.ui.hideScreens();
-  G.ui.show('hud');
-  if (G.state === 'menu') { G.state = 'play'; G.player.yaw = 0; if (G.startMode === 'metro') { G.player.pos.set(0, -120, 3); G.director.prepareMetroMap(); G.director.task(G.director.metroEnterTask); } }
-  else if (G.state === 'paused') G.state = 'play';
+  if (!G.booted) return;
+  if (G.state === 'ready') {
+    G.audio.init();
+    G.input.lock();
+    G.ui.hideScreens();
+    G.ui.show('hud');
+    G.state = 'play';
+    G.player.yaw = 0;
+    if (G.map === 'metro') G.director.startMetroMap();
+  } else if (G.state === 'paused') {
+    G.input.lock();
+    G.ui.hideScreens();
+    G.ui.show('hud');
+    G.state = 'play';
+  }
 }
-document.getElementById('btn-start').onclick = () => { G.ui.hide('menu'); G.ui.show('mapselect'); };
-document.getElementById('btn-back').onclick = () => { G.ui.hide('mapselect'); G.ui.show('menu'); };
-document.getElementById('map-city').onclick = () => { G.startMode = 'city'; G.map = 'city'; startGame(); };
-document.getElementById('map-metro').onclick = () => { G.startMode = 'metro'; G.map = 'metro'; startGame(); };
-setTimeout(() => makeMapThumbs(G), 600);
-document.getElementById('btn-resume').onclick = startGame;
+
+function selectMap(map) {
+  const info = MAPS[map];
+  if (!info || G.booted) return;
+  // the URL remembers the map: a reload (or "try again") restarts the same map, and the link can be shared
+  const q = new URLSearchParams(location.search); q.delete('maps'); q.set('map', map);
+  try { history.replaceState(null, '', `${location.pathname}?${q.toString().replace(/=(&|$)/g, '$1')}`); } catch (e) { /* sandboxed page */ }
+  $('tc-kicker').textContent = info.kicker;
+  $('tc-title').textContent = info.title;
+  $('tc-tag').textContent = info.tag;
+  $('tc-rules').innerHTML = info.rules;
+  G.ui.hideScreens();
+  $('titlecard').className = `screen tc-${map}`;
+  const go = $('btn-go');
+  go.disabled = true; go.textContent = 'LOADING… · ЖҮКТЕЛУДЕ…';
+  requestAnimationFrame(() => setTimeout(() => {
+    try { boot(map); } catch (e) { go.textContent = 'ERROR — please reload'; console.error(e); return; }
+    go.disabled = false; go.textContent = '▶ CLICK TO START · БАСТАУ';
+  }, 30));
+}
+
+$('btn-start').onclick = () => { G.ui.hide('menu'); G.ui.show('mapselect'); };
+$('btn-back').onclick = () => { G.ui.hide('mapselect'); G.ui.show('menu'); };
+$('map-city').onclick = () => selectMap('city');
+$('map-metro').onclick = () => selectMap('metro');
+$('btn-go').onclick = startGame;
+$('btn-resume').onclick = startGame;
 document.querySelectorAll('.btn-restart').forEach((b) => (b.onclick = () => location.reload()));
-document.querySelectorAll('.btn-settings').forEach((b) => (b.onclick = () => document.getElementById('settings').classList.toggle('hidden')));
-document.getElementById('btn-close-settings').onclick = () => document.getElementById('settings').classList.add('hidden');
+document.querySelectorAll('.btn-maps').forEach((b) => (b.onclick = () => { location.href = `${location.pathname}?maps${G.godMode ? '&god' : ''}`; }));
+document.querySelectorAll('.btn-settings').forEach((b) => (b.onclick = () => $('settings').classList.toggle('hidden')));
+$('btn-close-settings').onclick = () => $('settings').classList.add('hidden');
 canvas.addEventListener('click', () => { if (G.state === 'play' && !G.input.locked) G.input.lock(); });
+window.addEventListener('keydown', (e) => { if (e.code === 'Enter' && G.state === 'ready' && !$('btn-go').disabled) startGame(); });
+
+{ // best results on the cards, then open the right screen
+  const st = mapCardStats();
+  $('best-city').textContent = st.city; $('best-metro').textContent = st.metro; $('menu-stats').textContent = st.menu;
+  const want = params.get('map');
+  if (MAPS[want]) selectMap(want);
+  else if (params.has('maps')) { G.ui.hide('menu'); G.ui.show('mapselect'); }
+}
 
 G.input.onLockChange = (locked) => {
   if (locked) { hadLock = true; return; }
@@ -130,27 +208,32 @@ G.gameOver = () => {
   if (G.state !== 'play') return;
   G.state = 'dead';
   G.ui.screamer('horse', 1.2);
-  if (G.map === 'metro') document.querySelector('#gameover h2').textContent = 'YOU DIED IN METRO 404';
   G.audio.sting(1);
   setTimeout(() => {
     G.input.unlock();
     G.ui.hide('hud');
-    const [cause, joke] = G.director.deathLine();
-    document.getElementById('go-cause').textContent = cause;
-    document.getElementById('go-joke').textContent = joke;
-    document.getElementById('go-stats').textContent = `You survived ${fmtTime(G.time)} in 4090 City and witnessed ${G.director.eventsSeen} cursed events.`;
-    const sr = G.director.scoreAndRank(false);
-    document.getElementById('go-rank').textContent = `SCORE ${sr.score} · RANK: ${sr.rank}`;
+    let r;
+    if (G.map === 'metro') r = G.director.metroDeathReport();
+    else {
+      const [cause, joke] = G.director.deathLine(), sr = G.director.scoreAndRank(false);
+      r = { title: 'YOU DIED IN 4090 CITY', cause, joke, stats: `You survived ${fmtTime(G.time)} in 4090 City and witnessed ${G.director.eventsSeen} cursed events.`, rank: `SCORE ${sr.score} · RANK: ${sr.rank}`, memes: '' };
+    }
+    document.querySelector('#gameover h2').textContent = r.title;
+    $('go-cause').textContent = r.cause;
+    $('go-joke').textContent = r.joke;
+    $('go-stats').textContent = r.stats;
+    $('go-rank').textContent = r.rank;
+    $('go-memes').innerHTML = r.memes || '';
     G.ui.show('gameover');
   }, 1300);
 };
 G.win = () => {
   G.state = 'won';
   G.input.unlock();
-  document.getElementById('end-stats').textContent =
-    `Escape time: ${fmtTime(G.time)} · Cursed events witnessed: ${G.director.eventsSeen} · Health left: ${Math.round(G.player.health)}%`;
+  $('end-stats').textContent = `Escape time: ${fmtTime(G.time)} · Cursed events witnessed: ${G.director.eventsSeen} · Health left: ${Math.round(G.player.health)}%`;
   const sr = G.director.scoreAndRank(true);
-  document.getElementById('end-rank').textContent = `SCORE ${sr.score} · RANK: ${sr.rank} · 💾 ${sr.disks}/10 · 🏆 ${sr.ach}`;
+  $('end-rank').textContent = `SCORE ${sr.score} · RANK: ${sr.rank} · 💾 ${sr.disks}/10 · 🏆 ${sr.ach}`;
+  $('end-memes').innerHTML = '';
   G.ui.show('ending');
 };
 function fmtTime(t) { return `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`; }
@@ -163,7 +246,6 @@ window.addEventListener('resize', () => {
 // ---------------- main loop ----------------
 const clock = new THREE.Clock();
 let fpsAcc = 0, fpsFrames = 0, fpsShown = 60;
-const tmp = new THREE.Vector3();
 
 function pushPlayer() {
   if (G.map === 'metro') return;
@@ -182,7 +264,7 @@ function pushPlayer() {
 }
 
 function updateNPCs(dt) {
-  if (G.map === 'metro') return; // the city is not simulated on the metro map
+  if (G.map === 'metro') return; // there are no citizens on the metro map
   const P = G.player.pos;
   for (const n of G.npcs) {
     if (n.removed || (n.hidden && !n.mem.tickHidden)) continue;
@@ -193,10 +275,11 @@ function updateNPCs(dt) {
   collideNPCs(G.npcs, G);
 }
 
-let menuT = 0;
+let readyT = 0;
 function frame() {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, clock.getDelta()) * (G.timeScale || 1);
+  if (!G.booted) { G.input.endFrame(); return; } // the landing page and the map select have no 3D at all
   G.dt = dt; G.frame++;
   fpsAcc += dt; fpsFrames++;
   if (fpsAcc > 0.5) { fpsShown = Math.round(fpsFrames / fpsAcc); fpsAcc = 0; fpsFrames = 0; }
@@ -220,7 +303,7 @@ function frame() {
     G.heartT = (G.heartT || 0) - dt;
     if (P.fear > 0.45 && G.heartT <= 0) { G.heartT = 1.3 - P.fear * 0.8; G.audio.heartbeat(0.3 + P.fear * 0.5); }
   } else if (G.state === 'dead') {
-    // death cam: you collapse to the ground while the city keeps going
+    // death cam: you collapse to the ground while the world keeps going
     G.time += dt;
     const P = G.player, k = Math.min(1, dt * 3.5);
     camera.position.y += (P.pos.y + 0.22 - camera.position.y) * k;
@@ -237,15 +320,20 @@ function frame() {
     G.props.update(dt);
     G.world.update(dt, G);
     G.lighting.update(dt);
-  } else if (G.state === 'menu') {
-    menuT += dt * 0.05;
-    camera.position.set(Math.sin(menuT) * 30, 14, 14 + Math.cos(menuT) * 30);
-    camera.lookAt(10, 6, -20);
+  } else if (G.state === 'ready') {
+    // behind the title card: a slow camera move through the chosen map (also warms up the shaders)
+    readyT += dt;
+    if (G.map === 'metro') G.director.metroBackdrop(readyT);
+    else {
+      const a = readyT * 0.05;
+      camera.position.set(Math.sin(a) * 30, 14, 14 + Math.cos(a) * 30);
+      camera.lookAt(10, 6, -20);
+    }
     G.world.update(dt, G);
     G.lighting.update(dt);
   }
   G.ui.update(dt);
-  G.ui.realFps(fpsShown, G.settings.showFps && G.state !== 'menu');
+  G.ui.realFps(fpsShown, G.settings.showFps && G.state !== 'ready');
   G.audio.updateListener(camera);
   updateResolution();
   if (!G.fakeCrash && !(G.freezeT > 0)) G.fx.render(dt);

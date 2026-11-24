@@ -351,7 +351,7 @@ export function extendDirector16(D) {
           pose(r, 'rap', dt, G.time, 0); r.root.rotation.y = Math.atan2(Pl.pos.x - r.root.position.x, Pl.pos.z - r.root.position.z);
           if (Pl.pos.z < -12) { T.state = 'chase'; this.achieve('m_bars'); G.ui.toast('He is coming. TURN BACK!'); }
         } else if (T.state === 'chase') {
-          r.root.position.x += (Pl.pos.x - r.root.position.x) / d * 6.4 * dt; r.root.position.z += (Pl.pos.z - r.root.position.z) / d * 6.4 * dt;
+          const bsp = 6.4 * (M.speedMul || 1); r.root.position.x += (Pl.pos.x - r.root.position.x) / d * bsp * dt; r.root.position.z += (Pl.pos.z - r.root.position.z) / d * bsp * dt;
           r.root.rotation.y = Math.atan2(Pl.pos.x - r.root.position.x, Pl.pos.z - r.root.position.z);
           r.phase += dt * 14; pose(r, 'run', dt, G.time, 6.4);
           if (d < 1.1) { T.state = 'done'; if (M.beat) { M.beat.stop(); M.beat = null; } this.metroCaught('leopard', 12, 'ҰСТАДЫМ! ЕНДІ РЭП ТЫҢДА!'); }
@@ -367,7 +367,7 @@ export function extendDirector16(D) {
           if (Pl.pos.z < -14) { T.state = 'hop'; T.hop = 0; }
         } else if (T.state === 'hop') {
           T.hop += dt * 2.6;
-          r.root.position.x += (Pl.pos.x - r.root.position.x) / d * 5.6 * dt; r.root.position.z += (Pl.pos.z - r.root.position.z) / d * 5.6 * dt;
+          const dsp = 5.6 * (M.speedMul || 1); r.root.position.x += (Pl.pos.x - r.root.position.x) / d * dsp * dt; r.root.position.z += (Pl.pos.z - r.root.position.z) / d * dsp * dt;
           r.root.position.y = MY + Math.abs(Math.sin(T.hop * Math.PI)) * 1.4;
           pose(r, 'fight', dt, G.time, 0);
           if (Math.sin(T.hop * Math.PI) * Math.sin((T.hop - dt * 2.6) * Math.PI) < 0) { G.audio.thud(r.root.position, 1); Pl.shake = Math.max(Pl.shake, 0.35); }
@@ -382,7 +382,7 @@ export function extendDirector16(D) {
           const d = Math.hypot(Pl.pos.x - f.position.x, dz(f.position.z));
           f.rotation.y = Math.atan2(Pl.pos.x - f.position.x, Pl.pos.z - f.position.z);
           if (T.go) {
-            f.position.x += (Pl.pos.x - f.position.x) / d * (6.6 + i * 0.4) * dt; f.position.z += (Pl.pos.z - f.position.z) / d * (6.6 + i * 0.4) * dt;
+            const fsp = (6.6 + i * 0.4) * (M.speedMul || 1); f.position.x += (Pl.pos.x - f.position.x) / d * fsp * dt; f.position.z += (Pl.pos.z - f.position.z) / d * fsp * dt;
             f.position.y = MY + Math.abs(Math.sin(G.time * 18 + i)) * 0.15;
             f.userData.legs.forEach((l, k) => (l.rotation.x = Math.sin(G.time * 24 + k * Math.PI) * 0.9));
             if (Math.random() < dt * 1.5) G.audio.laugh(f.position, 0.3, 2.2);

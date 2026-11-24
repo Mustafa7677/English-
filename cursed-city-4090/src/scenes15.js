@@ -178,7 +178,7 @@ export function extendDirector15(D) {
     if (M.mgrMusic) { M.mgrMusic.stop(); M.mgrMusic = null; }
     M.cctv.rotation.set(0, 0, 0);
     M.walker = M.commuter; M.walker.root.visible = true; M.walkZ = -38; M.walkMode = 'walk';
-    M.stairs.visible = M.level === 0;
+    M.stairs.visible = M.level === 0 && G.map !== 'metro';
     M.doorScared = false; M.crewChant = 0; M.stepsT = 4;
     this.drawMetroSigns(false);
     this.peels = (this.peels || []).filter((p) => !p.metro);
@@ -375,7 +375,7 @@ export function extendDirector15(D) {
       if (M.mgrState === 'wait' && Pl.pos.z < -14) { M.mgrState = 'rush'; M.mgrMusic = G.audio.loop('nextbot', mm.position); G.ui.say('YOU ARE LATE FOR YOUR TRAIN.', 'THE MANAGER', 2.5, '#ffd040'); }
       if (M.mgrState === 'rush') {
         const dx = Pl.pos.x - mm.position.x, dz = Pl.pos.z - mm.position.z, d = Math.hypot(dx, dz);
-        mm.position.x += dx / d * 6.9 * dt; mm.position.z += dz / d * 6.9 * dt;
+        const msp = 6.9 * (M.speedMul || 1); mm.position.x += dx / d * msp * dt; mm.position.z += dz / d * msp * dt;
         M.mgrMusic.setPos(mm.position);
         if (d < 1.1) {
           M.mgrState = 'done'; mm.visible = false; M.mgrMusic.stop(); M.mgrMusic = null;

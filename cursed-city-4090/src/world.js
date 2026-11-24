@@ -8,8 +8,10 @@ export const ROADS = [-60, 0, 60];
 const RW = 6; // half road width
 
 export class World {
-  constructor(G) {
+  constructor(G, opts = {}) {
     this.G = G;
+    this.minimal = !!opts.minimal; // the METRO 404 map: no city at all
+    this.floorFns = []; // extra walkable surfaces (e.g. the escalator): (x, z, y) => height or null
     this.group = new THREE.Group();
     this.colliders = [];
     this.lamps = [];
@@ -24,7 +26,8 @@ export class World {
     this.shake = 0;
     this._tmp = new THREE.Vector3();
     G.scene.add(this.group);
-    this.build();
+    if (this.minimal) { this.gate = { open: 0, target: 0 }; this.nvidiaDoors = null; this.marketDoor = null; }
+    else this.build();
   }
 
   // ---------- collision ----------
@@ -39,7 +42,10 @@ export class World {
     return this.addCollider(p.x - w / 2, p.x + w / 2, p.z - d / 2, p.z + d / 2, p.y - h / 2, p.y + h / 2);
   }
 
-  floorAt(x, z, y) { return y < -90 ? -120 : y < -40 ? -60 : y < -10 ? -20 : 0; }
+  floorAt(x, z, y) {
+    for (const f of this.floorFns) { const h = f(x, z, y); if (h !== null && h !== undefined) return h; }
+    return y < -90 ? -120 : y < -40 ? -60 : y < -10 ? -20 : 0;
+  }
 
   /** Push a vertical cylinder (pos = feet) out of colliders. Returns the last collider hit or null. */
   resolve(pos, r, height = 1.8) {
@@ -735,6 +741,7 @@ export class World {
   }
 
   update(dt, G) {
+    if (this.minimal) return;
     // doors
     for (const d of this.doors) {
       d.angle += (d.target - d.angle) * Math.min(1, dt * 7);
