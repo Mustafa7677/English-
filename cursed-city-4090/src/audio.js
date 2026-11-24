@@ -286,6 +286,60 @@ export class GameAudio {
     n.connect(hp).connect(g).connect(this.sfx); n.start(t, 0, 0.1);
   }
 
+  /** The real screamer sound: distorted layered shriek + noise blast + sub hit. */
+  bigScream(vol = 1) {
+    if (!this.ctx) return;
+    const ctx = this.ctx, t = this.t;
+    const sh = ctx.createWaveShaper(); const curve = new Float32Array(512);
+    for (let i = 0; i < 512; i++) { const x = i / 256 - 1; curve[i] = Math.tanh(x * 6); }
+    sh.curve = curve;
+    const out = ctx.createGain(); this._env(out, t, 0.004, vol, 1.5);
+    sh.connect(out).connect(this.master);
+    for (let i = 0; i < 6; i++) {
+      const o = ctx.createOscillator(); o.type = 'sawtooth';
+      const f0 = 700 + i * 137;
+      o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * 1.4, t + 0.15); o.frequency.exponentialRampToValueAtTime(110 + i * 20, t + 1.4);
+      const g = ctx.createGain(); g.gain.value = 0.18;
+      o.connect(g).connect(sh); o.start(t); o.stop(t + 1.6);
+    }
+    const shriek = ctx.createOscillator(); shriek.type = 'square'; shriek.frequency.setValueAtTime(2600, t); shriek.frequency.linearRampToValueAtTime(1700, t + 1.2);
+    const vib = ctx.createOscillator(); vib.frequency.value = 23; const vg = ctx.createGain(); vg.gain.value = 300; vib.connect(vg).connect(shriek.frequency);
+    const sg = ctx.createGain(); sg.gain.value = 0.12; shriek.connect(sg).connect(sh); shriek.start(t); vib.start(t); shriek.stop(t + 1.3); vib.stop(t + 1.3);
+    const n = this._noiseSrc(); const ng = ctx.createGain(); this._env(ng, t, 0.002, vol * 0.8, 0.9); n.connect(ng).connect(this.master); n.start(t, 0, 1);
+    const sub = ctx.createOscillator(); sub.type = 'sine'; sub.frequency.setValueAtTime(90, t); sub.frequency.exponentialRampToValueAtTime(30, t + 0.6);
+    const subg = ctx.createGain(); this._env(subg, t, 0.003, vol, 0.7); sub.connect(subg).connect(this.master); sub.start(t); sub.stop(t + 0.8);
+  }
+
+  /** Ringing ears after a loud scare. */
+  tinnitus(dur = 3) {
+    if (!this.ctx) return;
+    const t = this.t, o = this.ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 6200;
+    const g = this.ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.05, t + 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(this.master); o.start(t); o.stop(t + dur + 0.1);
+  }
+
+  chalk(pos) {
+    if (!this.ctx) return;
+    const t = this.t, out = this._out(pos, 3), n = this._noiseSrc();
+    const bp = this.ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 3200 + Math.random() * 1500; bp.Q.value = 6;
+    const g = this.ctx.createGain(); this._env(g, t, 0.005, 0.35, 0.07);
+    n.connect(bp).connect(g).connect(out); n.start(t, Math.random(), 0.1);
+  }
+
+  /** Heavenly choir "aaah" (for doing the right thing). */
+  choir(dur = 2.5) {
+    if (!this.ctx) return;
+    const t = this.t;
+    [261.6, 329.6, 392, 523.2].forEach((f) => {
+      for (const det of [-3, 3]) {
+        const o = this.ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det * 4;
+        const bp = this.ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 800; bp.Q.value = 2;
+        const g = this.ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.05, t + 0.4); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+        o.connect(bp).connect(g).connect(this.master); o.start(t); o.stop(t + dur + 0.1);
+      }
+    });
+  }
+
   whoosh(vol = 0.4) {
     if (!this.ctx) return;
     const t = this.t, n = this._noiseSrc();

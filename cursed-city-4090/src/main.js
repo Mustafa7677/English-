@@ -72,7 +72,7 @@ function applySettings() {
 }
 function updateResolution() {
   const q = G.quality, s = G.settings;
-  const scale = Math.min(window.devicePixelRatio, 1.5) * q.scale * (s.psx ? 0.6 : 1) * G.renderScaleMul;
+  const scale = Math.min(window.devicePixelRatio, 1.5) * q.scale * (s.psx ? 0.6 : 1) * G.renderScaleMul * (G.rtxScale || 1);
   if (Math.abs(scale - appliedScale) > 0.01) { renderer.setPixelRatio(scale); renderer.setSize(window.innerWidth, window.innerHeight, false); appliedScale = scale; if (G.fx) G.fx.resize(); }
 }
 

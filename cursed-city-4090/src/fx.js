@@ -62,7 +62,8 @@ export class FX {
     u.uFear.value = G.player ? G.player.fear : 0;
     const mood = G.lighting.mood;
     u.uTint.value.set(...(mood === 'horror' ? [1.08, 0.9, 0.88] : mood === 'finale' ? [0.9, 1.1, 0.88] : [0.92, 1.04, 0.96]));
-    this.bloom.strength = mood === 'finale' ? 1.0 : 0.75;
+    this.bloom.strength = G.rtxBoost ? 3.2 : mood === 'finale' ? 1.0 : 0.75;
+    if (G.rtxBoost) u.uTint.value.set(1.15, 1.12, 1.2);
     this.composer.render(dt);
   }
 
