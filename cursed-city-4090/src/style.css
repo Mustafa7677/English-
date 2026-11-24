@@ -98,6 +98,12 @@ label.row input { margin-right: 8px; }
 #disks { position: absolute; top: 46px; right: 18px; font-size: 14px; color: var(--green); text-shadow: 1px 1px 0 #000; }
 #events { top: 76px !important; }
 .rank { font-size: 22px; color: var(--green); letter-spacing: 2px; text-shadow: 0 0 12px rgba(118,255,3,0.5); }
+#bossbar { position: fixed; top: 120px; left: 50%; transform: translateX(-50%); width: min(520px, 80vw); z-index: 6; pointer-events: none; text-align: center; }
+#bosslabel { font-size: 13px; letter-spacing: 3px; color: #ff5050; text-shadow: 0 0 8px #f00, 1px 1px 0 #000; margin-bottom: 4px; }
+.btrack { height: 12px; background: rgba(0,0,0,0.7); border: 1px solid #a22; }
+#bossfill { height: 100%; width: 100%; background: linear-gradient(90deg, #b00, #ff4040); transition: width 0.2s; }
+#bossbar.hit .btrack { border-color: #fff; box-shadow: 0 0 12px #fff; }
+#minimap { position: fixed; right: 18px; bottom: 40px; width: 220px; height: 220px; z-index: 6; image-rendering: pixelated; pointer-events: none; }
 @keyframes blink { 50% { opacity: 0.2; } }
 @keyframes jitter { 0% { transform: translate(0,0); } 25% { transform: translate(-3px,2px); } 50% { transform: translate(3px,-2px); } 75% { transform: translate(-2px,-3px); } 100% { transform: translate(0,0); } }
 @keyframes alarm { 0%,100% { opacity: 0.1; } 50% { opacity: 1; } }

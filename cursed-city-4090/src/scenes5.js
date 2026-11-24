@@ -106,6 +106,7 @@ export function extendDirector5(D) {
     this.achieve('kick1');
     if (this.kicks >= 25) this.achieve('kick25');
     if (n === this.robot) {
+      if (n.mem.boss && (n.stun || 0) > 0.3) return; // a real hit on the stunned boss
       this.achieve('kickRobot');
       G.ui.say('OW. OW. METAL. WHY DID I DO THAT.', 'You', 2.5, '#76ff03');
       n.say('DAMAGE: ZERO. EMBARRASSMENT: SEVERE.', 2.5, true);

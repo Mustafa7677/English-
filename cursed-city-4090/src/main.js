@@ -18,7 +18,7 @@ const QUALITY = {
   high: { scale: 1.0, lampLights: 10, shadows: true, shadowSize: 2048, fogDensity: 0.03, far: 200 },
 };
 
-const DEFAULTS = { quality: 'medium', psx: true, sensitivity: 1, volume: 0.8, horrorMinutes: 11, showFps: true };
+const DEFAULTS = { quality: 'medium', psx: true, sensitivity: 1, volume: 0.8, horrorMinutes: 11, showFps: true, difficulty: 'normal' };
 function loadSettings() {
   try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('cc4090-settings') || '{}') }; } catch (e) { return { ...DEFAULTS }; }
 }
@@ -87,6 +87,7 @@ function bindSettings() {
   vol.oninput = () => { s.volume = parseFloat(vol.value); applySettings(); };
   hm.onchange = () => { s.horrorMinutes = parseFloat(hm.value); saveSettings(s); };
   fps.onchange = () => { s.showFps = fps.checked; saveSettings(s); };
+  const diff = document.getElementById('set-diff'); diff.value = s.difficulty; diff.onchange = () => { s.difficulty = diff.value; saveSettings(s); };
 }
 bindSettings();
 applySettings();
@@ -184,7 +185,7 @@ function updateNPCs(dt) {
 let menuT = 0;
 function frame() {
   requestAnimationFrame(frame);
-  const dt = Math.min(0.05, clock.getDelta());
+  const dt = Math.min(0.05, clock.getDelta()) * (G.timeScale || 1);
   G.dt = dt; G.frame++;
   fpsAcc += dt; fpsFrames++;
   if (fpsAcc > 0.5) { fpsShown = Math.round(fpsFrames / fpsAcc); fpsAcc = 0; fpsFrames = 0; }

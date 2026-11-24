@@ -79,6 +79,7 @@ export class Player {
   damage(amount, fromPos, source) {
     if (this.dead || this.G.state !== 'play' || this.G.godMode || this.hiding) return;
     if (source) this.lastKiller = source;
+    amount *= { easy: 0.5, normal: 1, nightmare: 1.6 }[this.G.settings.difficulty] || 1;
     this.health -= amount;
     this.lastHit = this.G.time;
     this.fear = Math.min(1, this.fear + amount / 60);
@@ -254,7 +255,12 @@ export class Player {
       const reach = n.kind === 'robot' ? n.radius + 1.3 : 2.1;
       if (d > reach || Math.abs(n.pos.y - this.pos.y) > 1.5 || (dx * f.x + dz * f.z) / (d || 1) < 0.45) continue;
       hit = true;
-      if (n.kind === 'robot') {
+      if (n.kind === 'robot' && n.mem.boss && (n.stun || 0) > 0.3 && G.director.damageBoss) {
+        // a stunned boss can be kicked for real damage
+        G.director.damageBoss(this.sigma > 0 ? 20 : 12);
+        this.shake = 0.5; G.freezeT = 0.09;
+        if (G.fx) G.fx.emit(n.pos.clone().setY(2), 20, 'spark');
+      } else if (n.kind === 'robot') {
         G.audio.clank(n.pos.clone().setY(1.5), 1); this.shake = 0.35; this.damage(3, null, 'robot');
         if (G.fx) G.fx.emit(n.pos.clone().setY(1), 16, 'spark');
         n.stun = Math.max(n.stun || 0, n.mem.boss ? 0.2 : 0.8);
@@ -336,6 +342,7 @@ export class Player {
     let target = 0.08;
     if (lit > 12 && !this.flashOn) target += 0.25;
     if (G.director.horror) target += 0.25;
+    if (G.settings.difficulty === 'nightmare') target *= 1.25;
     if (this.inBasement()) target += 0.15;
     for (const t of G.director.threats()) {
       const d = Math.hypot(t.x - this.pos.x, t.z - this.pos.z);
