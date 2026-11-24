@@ -175,7 +175,7 @@ export class NPC {
     let grounded = false;
     if (this.pos.y <= floor) {
       this.pos.y = floor; grounded = true;
-      if (r.vy < -4) { r.vy = -r.vy * 0.3; G.audio.thud(this.pos, 0.8); r.limbs = this.randLimbs(); grounded = false; }
+      if (r.vy < -4) { r.vy = -r.vy * 0.3; G.audio.thud(this.pos, 0.8); r.limbs = this.randLimbs(); grounded = false; if (G.fx) G.fx.emit(this.pos, 10, 'dust'); }
       else r.vy = 0;
     }
     if (grounded) { const f = Math.max(0, 1 - 4.5 * dt); r.vx *= f; r.vz *= f; r.air = false; }
@@ -193,7 +193,7 @@ export class NPC {
           r.tilt += r.tiltVel * dt;
           if (Math.abs(r.tilt) >= Math.PI / 2) {
             r.tilt = target;
-            if (Math.abs(r.tiltVel) > 1.5 && r.thuds < 2) { G.audio.thud(this.pos, 0.9); r.thuds++; r.limbs = this.randLimbs(); if (this.onImpact) this.onImpact(); }
+            if (Math.abs(r.tiltVel) > 1.5 && r.thuds < 2) { G.audio.thud(this.pos, 0.9); r.thuds++; r.limbs = this.randLimbs(); if (G.fx) G.fx.emit(this.pos.clone().add(this.forward().multiplyScalar(0)), 8, 'dust'); if (this.onImpact) this.onImpact(); }
             r.tiltVel = -r.tiltVel * 0.22;
           }
         } else {

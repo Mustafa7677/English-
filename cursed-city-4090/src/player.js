@@ -51,6 +51,16 @@ export class Player {
     this.viewRTX.visible = false;
     this.viewRTX.traverse((m) => { if (m.isMesh) { m.castShadow = false; m.material = m.material.clone(); m.material.depthTest = false; m.renderOrder = 999; } });
     cam.add(this.viewRTX);
+    // kick leg view model
+    this.leg = new THREE.Group();
+    const legM = new THREE.MeshBasicMaterial({ color: 0x2b2f3a, depthTest: false });
+    const shoeM = new THREE.MeshBasicMaterial({ color: 0x151515, depthTest: false });
+    const shin = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.7, 0.18), legM); shin.position.y = -0.35;
+    const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.34), shoeM); shoe.position.set(0, -0.7, -0.1);
+    this.leg.add(shin, shoe); this.leg.traverse((m) => { m.renderOrder = 998; });
+    this.leg.position.set(0.12, -0.9, -0.35); this.leg.visible = false;
+    cam.add(this.leg);
+    this.kickT = 0;
     G.scene.add(cam);
   }
 
@@ -163,7 +173,10 @@ export class Player {
     this.flash.intensity = fi;
 
     // ---- throw ----
-    if (!this.locked && I.hit('KeyR')) this.throwBrick();
+    if (!this.locked && I.hit('KeyR', 'Mouse2')) this.throwBrick();
+    this.kickCd = Math.max(0, (this.kickCd || 0) - dt);
+    if (!this.locked && I.hit('Mouse0')) this.kick();
+    this.updateKickLeg(dt);
     // ---- interact ----
     this.updateInteract();
 
@@ -225,6 +238,56 @@ export class Player {
     setTimeout(() => G.audio.laugh(null, 0.2, 0.5), 900);
     G.ui.say(['*BURP* ...I can see sounds now.', '*BURP* My heart is doing a drum solo.', '*BURP* I could outrun a horse. Probably.'][Math.floor(Math.random() * 3)], 'You', 3, '#76ff03');
     G.ui.toast('BRAINROT ENERGY: +25% speed, endless stamina for 15 s');
+  }
+
+  kick() {
+    const G = this.G;
+    if (this.kickCd > 0 || this.hiding || this.inVehicle || this.stamina < 8) return;
+    this.kickCd = 0.55; this.kickT = 0.32; this.stamina -= 10;
+    const f = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
+    let hit = false;
+    for (const n of G.npcs) {
+      if (n.removed || n.hidden || n.attached || n.frozen) continue;
+      const dx = n.pos.x - this.pos.x, dz = n.pos.z - this.pos.z, d = Math.hypot(dx, dz);
+      const reach = n.kind === 'robot' ? n.radius + 1.3 : 2.1;
+      if (d > reach || Math.abs(n.pos.y - this.pos.y) > 1.5 || (dx * f.x + dz * f.z) / (d || 1) < 0.45) continue;
+      hit = true;
+      if (n.kind === 'robot') {
+        G.audio.clank(n.pos.clone().setY(1.5), 1); this.shake = 0.35; this.damage(3, null, 'robot');
+        if (G.fx) G.fx.emit(n.pos.clone().setY(1), 16, 'spark');
+        n.stun = Math.max(n.stun || 0, n.mem.boss ? 0.2 : 0.8);
+      } else {
+        if (n.rd) { n.rd.vx += f.x * 8; n.rd.vz += f.z * 8; n.rd.vy += 4; n.rd.air = true; n.rd.phase = 'fall'; n.rd.tiltVel += 4; }
+        else { n.stopScriptIfInterruptible(); n.fallFrom({ dir: f, power: n.hostile ? 9 : 8, up: 4, spin: 4, lie: n.hostile ? 1.6 : 2.2 }); }
+        if (n.mem.awake && n.hostile) n.mem.until = Math.min(n.mem.until || 0, G.time + 6);
+        G.audio.thud(n.pos.clone().setY(1.2), 1);
+        if (G.fx) G.fx.emit(n.pos.clone().setY(1.1), 14, 'dust');
+        G.freezeT = 0.07; this.shake = Math.max(this.shake, 0.3);
+      }
+      G.director.onKick(n);
+    }
+    for (const p of G.props.list) {
+      const dx = p.pos.x - this.pos.x, dz = p.pos.z - this.pos.z, d = Math.hypot(dx, dz);
+      if (d > 1.9 || (dx * f.x + dz * f.z) / (d || 1) < 0.4) continue;
+      p.rested = false; p.rest = 0; p.thrown = true;
+      p.vel.set(f.x * 13, 5, f.z * 13); p.ang.set(10, 6, 8);
+      G.audio.clank(p.pos, 0.4); hit = true;
+    }
+    const T = G.director.toilet;
+    if (T && T.state === 'chase' && T.pos.distanceTo(this.pos) < 2.3) { T.state = 'slip'; T.timer = 0; T.vel.set(f.x * 12, 0, f.z * 12); G.ui.say('*YEET*', '', 1); hit = true; }
+    if (!hit) G.audio.whoosh(0.2);
+    this.noise = 14;
+  }
+
+  updateKickLeg(dt) {
+    if (this.kickT > 0) {
+      this.kickT -= dt;
+      const k = 1 - Math.max(0, this.kickT) / 0.32; // 0 -> 1
+      const swing = Math.sin(Math.min(1, k) * Math.PI);
+      this.leg.visible = true;
+      this.leg.rotation.x = -0.2 - swing * 1.5;
+      this.leg.position.set(0.12, -0.9 + swing * 0.35, -0.35 - swing * 0.25);
+    } else this.leg.visible = false;
   }
 
   throwBrick() {

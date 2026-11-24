@@ -26,7 +26,8 @@ export class Input {
       if (Math.abs(e.movementX) > 300 || Math.abs(e.movementY) > 300) return;
       this.mdx += e.movementX; this.mdy += e.movementY;
     });
-    document.addEventListener('mousedown', () => { this.mouseDown = true; });
+    document.addEventListener('mousedown', (e) => { this.mouseDown = true; if (this.locked) this.pressed.add('Mouse' + e.button); });
+    document.addEventListener('contextmenu', (e) => { if (this.locked) e.preventDefault(); });
     document.addEventListener('mouseup', () => { this.mouseDown = false; });
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === this.canvas;

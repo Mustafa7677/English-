@@ -20,7 +20,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); c
 .fill { height: 100%; width: 100%; transition: width 0.15s; }
 .hp { background: #c02020; } .st { background: #d0c040; } .fr { background: #8a2be2; }
 #inv { margin-top: 8px; font-size: 13px; }
-#clock { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); font-size: 20px; color: #f33; text-shadow: 0 0 8px #f00; letter-spacing: 3px; }
+#clock { position: absolute; top: 52px; left: 50%; transform: translateX(-50%); font-size: 20px; color: #f33; text-shadow: 0 0 8px #f00; letter-spacing: 3px; }
 #quest { position: absolute; top: 18px; left: 18px; max-width: 340px; font-size: 13px; line-height: 1.45; background: rgba(0,0,0,0.45); padding: 10px 12px; border-left: 3px solid var(--green); }
 #quest small { color: #aaa; }
 #events { position: absolute; top: 60px; right: 18px; width: 300px; text-align: right; }
@@ -72,7 +72,7 @@ label { display: block; margin: 12px 0; font-size: 14px; }
 label select, label input[type=range] { display: block; width: 100%; margin-top: 6px; background: #111; color: var(--ink); border: 1px solid #444; padding: 4px; font-family: inherit; }
 label.row input { margin-right: 8px; }
 
-#achievements { position: fixed; top: 52px; left: 50%; transform: translateX(-50%); z-index: 15; pointer-events: none; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+#achievements { position: fixed; top: 92px; left: 50%; transform: translateX(-50%); z-index: 15; pointer-events: none; display: flex; flex-direction: column; gap: 6px; align-items: center; }
 .ach { display: flex; gap: 10px; align-items: center; background: rgba(10,14,8,0.92); border: 1px solid var(--green); padding: 8px 14px; font-size: 13px; min-width: 280px; box-shadow: 0 0 16px rgba(118,255,3,0.35); transition: opacity 1s, transform 1s; animation: achIn 0.4s ease-out; }
 .ach b { color: var(--green); font-size: 11px; letter-spacing: 2px; }
 .ach small { display: block; color: #999; }
@@ -87,6 +87,17 @@ label.row input { margin-right: 8px; }
 #meme { position: fixed; inset: 0; z-index: 24; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 18vh; pointer-events: none; font: bold 54px Impact, 'Arial Black', sans-serif; color: #fff; text-transform: uppercase; -webkit-text-stroke: 3px #000; text-shadow: 0 0 2px #000; box-shadow: inset 0 0 0 6px #fff; }
 #whiteflash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 21; }
 @keyframes achIn { from { opacity: 0; transform: translateY(-14px); } }
+#compass { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: min(460px, 70vw); height: 28px; overflow: hidden;
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.55) 20%, rgba(0,0,0,0.55) 80%, transparent); border-bottom: 1px solid rgba(255,255,255,0.15); }
+#compass::after { content: ''; position: absolute; left: 50%; top: 0; width: 1px; height: 8px; background: #fff; }
+#compass span { position: absolute; top: 5px; transform: translateX(-50%); font-weight: bold; font-size: 14px; }
+.cmp-dir { color: #ddd; } .cmp-obj { color: var(--green); font-size: 18px !important; top: 2px !important; text-shadow: 0 0 8px var(--green); } .cmp-buddy { color: #7f7; opacity: 0.7; }
+.cmp-dist { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--green); white-space: nowrap; text-shadow: 1px 1px 0 #000; }
+#compass .cmp-dist { top: 30px; }
+#hud #compass { overflow: visible; }
+#disks { position: absolute; top: 46px; right: 18px; font-size: 14px; color: var(--green); text-shadow: 1px 1px 0 #000; }
+#events { top: 76px !important; }
+.rank { font-size: 22px; color: var(--green); letter-spacing: 2px; text-shadow: 0 0 12px rgba(118,255,3,0.5); }
 @keyframes blink { 50% { opacity: 0.2; } }
 @keyframes jitter { 0% { transform: translate(0,0); } 25% { transform: translate(-3px,2px); } 50% { transform: translate(3px,-2px); } 75% { transform: translate(-2px,-3px); } 100% { transform: translate(0,0); } }
 @keyframes alarm { 0%,100% { opacity: 0.1; } 50% { opacity: 1; } }

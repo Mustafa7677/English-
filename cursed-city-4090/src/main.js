@@ -10,6 +10,7 @@ import { Props } from './physics.js';
 import { Lighting } from './lighting.js';
 import { Director } from './scenes.js';
 import { collideNPCs } from './npc.js';
+import { FX } from './fx.js';
 
 const QUALITY = {
   low: { scale: 0.5, lampLights: 3, shadows: false, shadowSize: 512, fogDensity: 0.04, far: 110 },
@@ -49,6 +50,7 @@ G.props = new Props(G);
 G.player = new Player(G);
 G.director = new Director(G);
 G.director.init();
+G.fx = new FX(G);
 
 // ---------------- settings ----------------
 let appliedScale = -1;
@@ -60,6 +62,7 @@ function applySettings() {
   G.player.setShadows(s.quality === 'high');
   camera.far = q.far; camera.updateProjectionMatrix();
   psx.snap.value = s.psx ? 120 : 0;
+  if (G.fx) G.fx.setEnabled(s.quality !== 'low');
   canvas.classList.toggle('pixel', s.psx);
   G.input.sensitivity = s.sensitivity;
   G.audio.setVolume(s.volume);
@@ -70,7 +73,7 @@ function applySettings() {
 function updateResolution() {
   const q = G.quality, s = G.settings;
   const scale = Math.min(window.devicePixelRatio, 1.5) * q.scale * (s.psx ? 0.6 : 1) * G.renderScaleMul;
-  if (Math.abs(scale - appliedScale) > 0.01) { renderer.setPixelRatio(scale); renderer.setSize(window.innerWidth, window.innerHeight, false); appliedScale = scale; }
+  if (Math.abs(scale - appliedScale) > 0.01) { renderer.setPixelRatio(scale); renderer.setSize(window.innerWidth, window.innerHeight, false); appliedScale = scale; if (G.fx) G.fx.resize(); }
 }
 
 function bindSettings() {
@@ -126,6 +129,8 @@ G.gameOver = () => {
     document.getElementById('go-cause').textContent = cause;
     document.getElementById('go-joke').textContent = joke;
     document.getElementById('go-stats').textContent = `You survived ${fmtTime(G.time)} in 4090 City and witnessed ${G.director.eventsSeen} cursed events.`;
+    const sr = G.director.scoreAndRank(false);
+    document.getElementById('go-rank').textContent = `SCORE ${sr.score} · RANK: ${sr.rank}`;
     G.ui.show('gameover');
   }, 1300);
 };
@@ -134,6 +139,8 @@ G.win = () => {
   G.input.unlock();
   document.getElementById('end-stats').textContent =
     `Escape time: ${fmtTime(G.time)} · Cursed events witnessed: ${G.director.eventsSeen} · Health left: ${Math.round(G.player.health)}%`;
+  const sr = G.director.scoreAndRank(true);
+  document.getElementById('end-rank').textContent = `SCORE ${sr.score} · RANK: ${sr.rank} · 💾 ${sr.disks}/10 · 🏆 ${sr.ach}`;
   G.ui.show('ending');
 };
 function fmtTime(t) { return `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`; }
@@ -218,7 +225,7 @@ function frame() {
   G.ui.realFps(fpsShown, G.settings.showFps && G.state !== 'menu');
   G.audio.updateListener(camera);
   updateResolution();
-  if (!G.fakeCrash && !(G.freezeT > 0)) renderer.render(scene, camera);
+  if (!G.fakeCrash && !(G.freezeT > 0)) G.fx.render(dt);
   G.input.endFrame();
 }
 frame();
