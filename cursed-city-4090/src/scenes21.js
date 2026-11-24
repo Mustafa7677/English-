@@ -1,17 +1,17 @@
 // Chapter 21: METRO 404, the meme train.
-// Kazakh TikTok memes come alive in the long train. Nothing is invented on top of them: no screamers, no chases,
-// no quests, no superpowers. Each meme does what happens in its original video; only the place moves into the
-// metro. A scene starts when you come close, plays once, and afterwards the people just sit there like normal
-// passengers. Every door opens both ways: walk to any wagon at any time.
+// Kazakh TikTok memes come alive in the long train. Each meme does what happens in its original video; only the
+// place moves into the metro. Every main meme has its own wagon and its own "stage" in the middle of the wagon:
+// you walk in, you see it from 6 m away, the people face you, the aisle stays free. A scene starts when you come
+// close, plays once, and afterwards the people just sit there like normal passengers. Every door opens both ways.
+// (The horror between the memes, the faceless night conductor, is chapter 22.)
 //
-//   1  the last wagon      (the intro)
-//   2  Ей, дүбәрә! · Шлабра                     8  Ойлашы · Әкет, әкет · Әшейін сән ғой
-//   3  Зыпылдаған 25        (Райымбек батыр)     9  Дебит тищ теңге · AI-әже
-//   4  Отанбас              (Жібек жолы)         10 Геодезическая 12 · Саспа, бауырым · Қораға кірдік (Туннель 404)
-//   5  the wedding · Қайттық Шауілдірге · Чиви қайда?   11 Чай поставьте · Галасубуй · Баха, звандама маған · Көк пакет Айген
-//   6  Kaspi · Цунбятрм · Түрі такси ұстап кетті · Қол қойдым (Абай: Пескаблок лақтыру on the platform)
-//   7  Таста, газель айдайсың · Ауыр-ауыр         12 Мощный и сочный лагман · Ибұңқұ-ибұңқұ (Шексіз бекет ∞)
-//                                                 13 570 теңге бердім · Барыс MC
+//   1  the last wagon (intro)            7  Таста, газель айдайсың · Ауыр-ауыр    13 Туннель 404 (chapter 22)
+//   2  Ей, дүбәрә! · Шлабра              8  Жумайсынба                            14 Чай поставьте
+//   3  Зыпылдаған 25 (Райымбек батыр)    9  Ойлашы · Әкет, әкет · Әшейін сән ғой   15 Галасубуй · Баха, звандама маған · Көк пакет Айген
+//   4  Отанбас (Жібек жолы)              10 Дебит тищ теңге                       16 Мощный и сочный лагман
+//   5  Той · Қайттық Шауілдірге · Чиви қайда?   11 AI-әже                         17 Ибұңқұ-ибұңқұ (Шексіз бекет ∞)
+//   6  Kaspi · Цунбятрм · Түрі такси ұстап кетті · Қол қойдым (Абай: Пескаблок)   18 570 теңге бердім · Барыс MC
+//   12 Геодезическая 12 · Қораға кірдік
 //   then: the driver's cab, the exit hall, the escalator... and Акополексус at the station's outer entrance.
 import * as THREE from 'three';
 import { makeHumanoid, pose, randomLook } from './characters.js';
@@ -25,9 +25,11 @@ const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const zFront = (k) => -k * WP - WL;
 const L = (k, l) => -k * WP - l; // world z of a point l metres into wagon k
 const EX = -40, ESC_TOP = -30, ESC_RISE = 12, ESC_END = -40.6; // the escalator hall (chapter 19)
-const WNAME = ['Соңғы вагон', 'Ей, дүбәрә! · Шлабра', 'Зыпылдаған 25', 'Отанбас', 'Той', 'Kaspi', 'Таста, газель айдайсың', 'Жумайсынба',
-  'Ойлашы', 'Дебит тищ теңге · AI-әже', 'Геодезическая 12', 'Чай поставьте · Баха', 'Мощный и сочный лагман', '570 теңге · Барыс MC'];
-const STOP_AT = { 2: 5, 5: 3, 10: 2, 12: 1 }; // wagon → station (Жібек жолы comes with Otanbas's scene)
+export const WNAME = ['Соңғы вагон', 'Ей, дүбәрә! · Шлабра', 'Зыпылдаған 25', 'Отанбас', 'Той', 'Kaspi', 'Таста, газель айдайсың', 'Жумайсынба',
+  'Ойлашы', 'Дебит тищ теңге', 'AI-әже', 'Геодезическая 12', 'Туннель 404', 'Чай поставьте', 'Баха, звандама маған', 'Мощный и сочный лагман',
+  'Ибұңқұ-ибұңқұ', '570 теңге · Барыс MC'];
+const STOP_AT = { 2: 5, 5: 3, 16: 1 }; // wagon → station (Жібек жолы comes with Otanbas, Туннель 404 with chapter 22)
+const STATIONS = { 5: 'Райымбек батыр', 4: 'Жібек жолы', 3: 'Абай', 2: 'Туннель 404', 1: 'Шексіз бекет ∞', 0: 'Жер беті' };
 const fmt = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const $ = (id) => document.getElementById(id);
 
@@ -50,7 +52,7 @@ MEMES.splice(0, MEMES.length, ...[
 
 Object.assign(ACH, { m_memetrain: ['Meme Train', 'See every meme in the long train'] });
 
-// ---------------------------------------------------------------- props
+// ---------------------------------------------------------------- props and looks
 function labelTex(text, bg, fg, w = 256, h = 64, size = 40) {
   return txt(w, h, (ctx) => {
     ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h); ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -69,9 +71,26 @@ function makePoints(n, color, size) {
   p.frustumCulled = false; p.visible = false;
   return p;
 }
-function addMouth(r) { // a mouth that opens and closes while they talk
-  r.mouth = box(0.085, 0.016, 0.012, basic('#2a0808'), 0, 0.088, 0.174, false); r.head.add(r.mouth);
-  return r;
+const phoneProp = () => box(0.08, 0.15, 0.015, mat('#111', { emissive: '#223' }), 0, -0.75, 0.08);
+function addMouth(r) { r.mouth = box(0.085, 0.016, 0.012, basic('#2a0808'), 0, 0.088, 0.174, false); r.head.add(r.mouth); return r; }
+function addMustache(r, c = '#1a1410') { r.head.add(box(0.13, 0.026, 0.02, mat(c), 0, 0.118, 0.175, false)); return r; }
+function addChefHat(r) { r.head.add(cyl(0.17, 0.15, 0.08, 10, mat('#ffffff'), 0, 0.38, 0), cyl(0.2, 0.17, 0.2, 10, mat('#ffffff'), 0, 0.52, 0)); return r; }
+function addVeil(r) {
+  const v = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.9), new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
+  v.position.set(0, 0.0, -0.2); r.head.add(v, box(0.3, 0.05, 0.3, mat('#f4f0e0'), 0, 0.37, 0, false)); return r;
+}
+function addFlatCap(r, c) { r.head.add(box(0.36, 0.08, 0.36, mat(c), 0, 0.36, -0.01, false), box(0.3, 0.025, 0.14, mat(c), 0, 0.33, 0.2, false)); return r; }
+function addStripes(r, c = '#ffffff') { for (const a of [r.armL, r.armR]) for (const s of [-1, 1]) a.add(box(0.014, 0.62, 0.014, mat(c), s * 0.066, -0.42, 0, false)); return r; }
+function addChain(r) { const m = mat('#e8c040', { emissive: '#3a2a00' }); r.spine.add(box(0.22, 0.025, 0.02, m, 0, 0.34, 0.15, false), box(0.06, 0.06, 0.02, m, 0, 0.27, 0.16, false)); return r; }
+function addShades(r) { r.head.add(box(0.3, 0.06, 0.03, basic('#050505'), 0, 0.22, 0.18, false)); return r; }
+function addSlickHair(r) { r.head.add(box(0.34, 0.06, 0.36, mat('#0a0a0a', { emissive: '#101010' }), 0, 0.35, -0.01, false)); return r; }
+function gradeBookTex() { // a university grade book, open: "3 2 2"
+  return txt(128, 96, (ctx) => {
+    ctx.fillStyle = '#f4f0e4'; ctx.fillRect(0, 0, 128, 96); ctx.fillStyle = '#1a3a8a'; ctx.fillRect(62, 0, 4, 96);
+    ctx.fillStyle = '#222'; ctx.font = 'bold 11px Arial'; ctx.fillText('СЫНАҚ КІТАПШАСЫ', 4, 14);
+    ctx.font = '10px monospace'; ['Матем.   3', 'Физика   2', 'Тарих    2', 'Ағылшын  3'].forEach((t, i) => ctx.fillText(t, 70, 26 + i * 16));
+    ctx.fillStyle = '#c01010'; ctx.font = 'bold 26px Arial'; ctx.fillText('2', 20, 70);
+  });
 }
 
 export function extendDirector21(D) {
@@ -81,79 +100,101 @@ export function extendDirector21(D) {
   const origActors = P.buildTrainActors;
   P.buildTrainActors = function () {
     origActors.call(this);
-    const G = this.G, T = this.train, g = T.group;
+    const G = this.G, T = this.train, g = T.group, W = G.world;
     const A = (rig, k) => { g.add(rig.root); rig.act = { rig, root: rig.root, k, show: true }; T.actors.push(rig.act); return addMouth(rig); };
     const H = (o, k) => A(makeHumanoid(o), k);
     const C = T.cast = {};
-    // kept from chapter 20, now without chases or screamers
     [T.apa, T.zyp, T.otanbas, T.ctrl, T.bride, T.groom, ...T.guests, T.asaba, T.erlan, T.phoneGuy, ...T.bg2, ...T.crew].forEach(addMouth);
-    T.leo.act.k = 13; T.crew.forEach((r) => (r.act.k = 13));
-    // 2: Шлабра — the cleaner's mop
+    addVeil(T.bride); T.groom.spine.add(box(0.05, 0.05, 0.02, mat('#e04060'), 0.1, 0.32, 0.16, false));
+    addMustache(T.asaba); addFlatCap(T.otanbas, '#2a2a2a');
+    // the apa's plaid bag goes next to her new seat
+    const bz = L(1, 2.5), nz = L(1, 5.7);
+    const bc = W.colliders.find((c) => Math.abs(c.minX - (TX + 0.27)) < 0.01 && Math.abs((c.minZ + c.maxZ) / 2 - bz) < 0.05);
+    if (bc) { bc.minZ += nz - bz; bc.maxZ += nz - bz; }
+    T.bag.position.z = nz;
+    // 2: Шлабра — the cleaner, her mop, her bucket
     C.cleaner = H({ skin: '#d0a880', shirt: '#2a6a8a', pants: '#2a3a4a', outfit: 'plain', hair: 'bun', hairColor: '#3a2a1a', fat: 1.15 }, 1);
+    C.cleaner.spine.add(box(0.4, 0.5, 0.03, mat('#e8e8e0'), 0, 0.12, 0.14, false));
     C.mop = new THREE.Group();
     C.mop.add(cyl(0.018, 0.018, 1.35, 6, mat('#a07a40'), 0, 0.68, 0), box(0.42, 0.07, 0.12, mat('#d8d8d0'), 0, 0.03, 0, false));
-    const ml = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.09), new THREE.MeshBasicMaterial({ map: labelTex('ШЛАБРА', '#ffe040', '#111') }));
-    ml.position.set(0, 0.6, 0.025); C.mop.add(ml);
-    g.add(C.mop);
+    const ml = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.09), new THREE.MeshBasicMaterial({ map: labelTex('ШЛАБРА', '#ffe040', '#111'), side: THREE.DoubleSide }));
+    ml.position.set(0, 0.6, 0.025); C.mop.add(ml); g.add(C.mop);
+    T.wagons[1].group.add(cyl(0.16, 0.13, 0.3, 10, mat('#2a6ad8'), TX - 0.8, MY + 0.15, L(1, 14.4)));
     // 5: the wedding waiter
     C.waiter = H({ shirt: '#f2f2f2', pants: '#111', outfit: 'shirt', hair: 'short', skin: '#c8966e' }, 4);
-    C.waiter.spine.add(box(0.36, 0.42, 0.04, mat('#151515'), 0, 0.22, 0.13, false));
+    C.waiter.spine.add(box(0.36, 0.42, 0.04, mat('#151515'), 0, 0.22, 0.13, false), box(0.12, 0.04, 0.02, mat('#111'), 0, 0.4, 0.16, false));
     C.tray = new THREE.Group(); C.tray.add(cyl(0.16, 0.16, 0.02, 10, mat('#b0b0b0'), 0, 0, 0), cyl(0.06, 0.07, 0.12, 8, mat('#e8e0d0'), 0, 0.07, 0));
     C.tray.position.set(0, -0.82, 0.12); C.waiter.armR.add(C.tray);
     // 6: Түрі такси ұстап кетті
     C.taksi = H({ ...randomLook(), outfit: 'jacket' }, 5);
-    // 7: Таста, газель айдайсың — a father and his grown-up son, a university student
-    C.father = H({ skin: '#c89a78', shirt: '#4a4a5a', pants: '#2a2a30', outfit: 'jacket', hair: 'short', hairColor: '#666', glasses: true, fat: 1.2 }, 6);
-    C.book = box(0.15, 0.2, 0.02, mat('#2a4a9a'), 0, -0.8, 0.08, false); C.father.armR.add(C.book);
+    // 7: Таста, газель айдайсың — a father (moustache, glasses, the grade book) and his grown-up son, a student
+    C.father = addMustache(H({ skin: '#c89a78', shirt: '#4a4a5a', pants: '#2a2a30', outfit: 'jacket', hair: 'short', hairColor: '#666', glasses: true, fat: 1.2 }, 6), '#555');
+    C.book = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.16, 0.012), [mat('#1a3a8a'), mat('#1a3a8a'), mat('#1a3a8a'), mat('#1a3a8a'), new THREE.MeshBasicMaterial({ map: gradeBookTex() }), mat('#1a3a8a')]);
+    C.book.position.set(0, -0.8, 0.12); C.father.armR.add(C.book);
     C.son = H({ outfit: 'hoodie', shirt: '#5a8a5a', hair: 'buzz', skin: '#d2a37a' }, 6);
     C.son.spine.add(box(0.34, 0.4, 0.16, mat('#2a2a3a'), 0, 0.2, -0.2, false));
     C.friend = H({ ...randomLook(), outfit: 'shirt' }, 6);
-    // 8: Жумайсынба — a black leather jacket, a kettle, a shampoo bottle
-    C.juma = H({ outfit: 'jacket', shirt: '#151515', pants: '#1a1a22', hair: 'short', hairColor: '#111', skin: '#d0a07a' }, 7);
+    // 8: Жумайсынба — a black leather jacket, slicked hair, a kettle, a shampoo bottle
+    C.juma = addSlickHair(H({ outfit: 'jacket', shirt: '#0e0e10', pants: '#1a1a22', hair: 'none', skin: '#d0a07a' }, 7));
+    C.juma.spine.add(box(0.44, 0.02, 0.3, mat('#1a1a1a', { emissive: '#181818' }), 0, 0.46, 0, false));
     C.kettle = makeKettle(); C.kettle.position.set(0, -0.8, 0.1); C.juma.armR.add(C.kettle);
-    C.shampoo = cyl(0.045, 0.05, 0.2, 8, mat('#3a8ad8'), 0, -0.82, 0.08); C.juma.armL.add(C.shampoo);
+    C.shampoo = new THREE.Group(); C.shampoo.add(cyl(0.045, 0.05, 0.2, 8, mat('#3a8ad8'), 0, 0, 0), box(0.07, 0.07, 0.003, basic('#ffffff'), 0, 0, 0.05, false));
+    C.shampoo.position.set(0, -0.82, 0.08); C.juma.armL.add(C.shampoo);
     C.water = makePoints(60, 0x9cd8ff, 0.035); g.add(C.water);
-    // 9: Ойлашы — the clothes seller with his rack
-    C.seller = H({ outfit: 'shirt', shirt: '#c0a060', pants: '#2a2a2a', hair: 'short', skin: '#c8966e' }, 8);
+    // 9: Ойлашы — the clothes seller with his rack and his sign
+    C.seller = H({ outfit: 'shirt', shirt: '#c0a060', pants: '#2a2a2a', hair: 'short', skin: '#c8966e', hat: 'cap', capColor: '#1a1a1a' }, 8);
     C.jacket = box(0.42, 0.55, 0.06, mat('#6a3a1a'), 0, -0.85, 0.12, false); C.seller.armR.add(C.jacket);
     C.rack = new THREE.Group();
     C.rack.add(box(0.04, 1.6, 0.04, mat('#888'), 0, 0.8, -0.6, false), box(0.04, 1.6, 0.04, mat('#888'), 0, 0.8, 0.6, false), box(0.04, 0.04, 1.24, mat('#888'), 0, 1.6, 0, false));
     ['#2a2a6a', '#6a1a1a', '#1a5a2a', '#d0d0c8'].forEach((c, i) => C.rack.add(box(0.1, 0.7, 0.42, mat(c), 0, 1.22, -0.45 + i * 0.3, false)));
-    C.rack.position.set(TX + 0.85, MY, L(8, 6.4)); T.wagons[8].group.add(C.rack);
+    const rs = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.26), new THREE.MeshBasicMaterial({ map: labelTex('КИІМ · ARZAN', '#c02020', '#fff'), side: THREE.DoubleSide }));
+    rs.position.set(0, 1.85, 0); rs.rotation.y = -Math.PI / 2; C.rack.add(rs);
+    C.rack.position.set(TX + 0.85, MY, L(8, 9.6)); T.wagons[8].group.add(C.rack);
+    W.addCollider(TX + 0.75, TX + 0.95, L(8, 9.6) - 0.62, L(8, 9.6) + 0.62, MY - 1, MY + 2);
     C.listener = H({ ...randomLook(), outfit: 'hoodie' }, 8);
-    // 10: Дебит тищ теңге on the wagon screen, and the AI grandmas
+    // 10: Дебит тищ теңге on the wagon screen
     const tc = document.createElement('canvas'); tc.width = 256; tc.height = 144; C.tvCtx = tc.getContext('2d'); C.tvTex = new THREE.CanvasTexture(tc);
     C.tv = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 0.65), new THREE.MeshBasicMaterial({ map: C.tvTex }));
-    C.tv.position.set(TX - 1.53, MY + 1.45, L(9, 4)); C.tv.rotation.y = Math.PI / 2; T.wagons[9].group.add(C.tv);
+    C.tv.position.set(TX - 1.53, MY + 1.45, L(9, 8)); C.tv.rotation.y = Math.PI / 2; T.wagons[9].group.add(C.tv);
     this.drawTv('idle', 0);
-    C.aje1 = A(makeApa('#8a2a6a', '#f0d040'), 9); C.aje2 = A(makeApa('#2a4a8a', '#ffffff'), 9);
-    for (const a of [C.aje1, C.aje2]) a.head.add(box(0.3, 0.06, 0.03, basic('#050505'), 0, 0.22, 0.18, false)); // sunglasses
-    // 11: Геодезическая 12
-    C.caller = H({ ...randomLook(), outfit: 'jacket' }, 10); C.callerPhone = box(0.08, 0.15, 0.015, mat('#111'), 0, -0.75, 0.08); C.caller.armR.add(C.callerPhone);
-    C.calm = H({ ...randomLook(), outfit: 'shirt' }, 10);
-    // 12: Чай поставьте · Галасубуй · Баха, звандама маған · Көк пакет Айген
-    C.chaiDad = H({ skin: '#c8966e', shirt: '#6a5a4a', pants: '#2a2a2a', outfit: 'jacket', hair: 'short', hairColor: '#888', fat: 1.15 }, 11);
-    C.chaiPhone = box(0.08, 0.15, 0.015, mat('#111', { emissive: '#223' }), 0, -0.75, 0.08); C.chaiDad.armR.add(C.chaiPhone);
-    C.galas = H({ ...randomLook(), outfit: 'hoodie' }, 11); C.galas.armR.add(box(0.08, 0.15, 0.015, mat('#111', { emissive: '#223' }), 0, -0.75, 0.08));
-    C.baha = H({ outfit: 'tshirt', shirt: '#2a2a2a', pants: '#1a1a2a', hair: 'buzz', skin: '#c8966e' }, 11);
-    C.baha.armR.add(box(0.08, 0.15, 0.015, mat('#111'), 0, -0.75, 0.08));
-    C.bag = box(0.3, 0.36, 0.14, mat('#2a6ad8'), 0, -0.95, 0.02); C.baha.armL.add(C.bag); // the blue plastic bag
-    // 13: Мощный и сочный лагман · Ибұңқұ-ибұңқұ
-    C.cook = H({ outfit: 'tshirt', shirt: '#f0f0f0', pants: '#2a2a2a', hair: 'short', fat: 1.3, skin: '#c8966e' }, 12);
+    // 11: AI grandmas: scarves, sunglasses, gold chains
+    C.aje1 = addChain(addShades(A(makeApa('#8a2a6a', '#f0d040'), 10)));
+    C.aje2 = addChain(addShades(A(makeApa('#2a4a8a', '#ffffff'), 10)));
+    // 12: Геодезическая 12
+    C.caller = H({ ...randomLook(), outfit: 'jacket', hat: 'cap', capColor: '#3a3a3a' }, 11); C.caller.armR.add(phoneProp());
+    C.calm = H({ ...randomLook(), outfit: 'shirt' }, 11);
+    // 14: Чай поставьте
+    C.chaiDad = addMustache(addFlatCap(H({ skin: '#c8966e', shirt: '#6a5a4a', pants: '#2a2a2a', outfit: 'jacket', hair: 'short', hairColor: '#888', fat: 1.15 }, 13), '#3a3226'), '#777');
+    C.chaiDad.armR.add(phoneProp());
+    // 15: Галасубуй · Баха (a black tracksuit with white stripes, the blue bag)
+    C.galas = H({ ...randomLook(), outfit: 'hoodie' }, 14); C.galas.armR.add(phoneProp());
+    C.baha = addStripes(H({ outfit: 'hoodie', shirt: '#151518', pants: '#151518', hair: 'buzz', skin: '#c8966e' }, 14));
+    C.baha.armR.add(phoneProp());
+    C.bag = box(0.3, 0.36, 0.14, mat('#2a6ad8'), 0, -0.95, 0.02); C.baha.armL.add(C.bag);
+    // 16: Мощный и сочный лагман: a chef's hat, an apron, a ladle, a stove with a wok
+    C.cook = addChefHat(H({ outfit: 'tshirt', shirt: '#f0f0f0', pants: '#2a2a2a', hair: 'short', fat: 1.3, skin: '#c8966e' }, 15));
     C.cook.spine.add(box(0.38, 0.5, 0.03, mat('#ffffff'), 0, 0.1, 0.14, false));
     C.ladle = new THREE.Group(); C.ladle.add(cyl(0.012, 0.012, 0.45, 5, mat('#888'), 0, 0.1, 0), cyl(0.05, 0.04, 0.04, 8, mat('#888'), 0, -0.13, 0));
     C.ladle.position.set(0, -0.85, 0.12); C.cook.armR.add(C.ladle);
     C.stove = new THREE.Group();
-    C.stove.add(box(0.36, 0.12, 0.36, mat('#333'), 0, 0.06, 0, false), cyl(0.3, 0.22, 0.16, 12, mat('#2a2a2a'), 0, 0.22, 0), cyl(0.26, 0.26, 0.02, 12, mat('#e0b040'), 0, 0.29, 0));
-    C.stove.position.set(TX + 0.7, MY, L(12, 5.9)); T.wagons[12].group.add(C.stove);
+    C.stove.add(box(0.5, 0.75, 0.5, mat('#5a4a3a'), 0, 0.37, 0, false), box(0.36, 0.08, 0.36, mat('#333'), 0, 0.79, 0, false),
+      cyl(0.3, 0.22, 0.16, 12, mat('#2a2a2a'), 0, 0.93, 0), cyl(0.26, 0.26, 0.02, 12, mat('#e0b040'), 0, 1.0, 0));
+    C.stove.position.set(TX + 0.78, MY, L(15, 9.0)); T.wagons[15].group.add(C.stove);
+    W.addCollider(TX + 0.53, TX + 1.03, L(15, 9.0) - 0.25, L(15, 9.0) + 0.25, MY - 1, MY + 1);
     C.steam = makePoints(50, 0xf0f0f0, 0.06); g.add(C.steam);
-    C.singer = H({ ...randomLook(), outfit: 'tshirt' }, 12);
-    // 14: 570 теңге бердім — a street interview, and Барыс MC
-    C.journo = H({ suit: true, shirt: '#3a3a5a', pants: '#2a2a3a', hair: 'long', hairColor: '#2a1a10', skin: '#e0b898' }, 13);
+    // 17: Ибұңқұ-ибұңқұ
+    C.singer = H({ ...randomLook(), outfit: 'tshirt', shirt: '#e0e0e0' }, 16);
+    // 18: 570 теңге бердім — a street interview (a TV-channel cube on the mic), and Барыс MC
+    C.journo = H({ suit: true, shirt: '#3a3a5a', pants: '#2a2a3a', hair: 'long', hairColor: '#2a1a10', skin: '#e0b898' }, 17);
     C.journo.armR.add(cyl(0.025, 0.02, 0.22, 6, mat('#222'), 0, -0.85, 0.1), box(0.07, 0.07, 0.07, mat('#c02020'), 0, -0.98, 0.1, false));
-    C.cam = H({ outfit: 'jacket', shirt: '#333', pants: '#222', hair: 'short' }, 13);
+    C.cam = H({ outfit: 'jacket', shirt: '#333', pants: '#222', hair: 'short', hat: 'cap', capColor: '#222' }, 17);
     C.cam.spine.add(box(0.2, 0.22, 0.42, mat('#1a1a1a'), 0.22, 0.62, 0.1, false), cyl(0.06, 0.06, 0.1, 8, mat('#111'), 0.22, 0.62, 0.36));
-    C.guest570 = H({ ...randomLook(), outfit: 'jacket' }, 13);
+    C.guest570 = H({ ...randomLook(), outfit: 'jacket' }, 17);
+    // ordinary passengers, so no wagon looks empty
+    C.bg = [[9, 1, 6.2, 'sit'], [9, 1, 10.6, 'sleep'], [11, -1, 5, 'sit'], [12, -1, 4.6, 'sleep'], [12, 1, 6.6, 'sleep'], [12, -1, 10.4, 'sleep'],
+      [13, 1, 5.2, 'sit'], [14, -1, 11.6, 'sleep'], [15, -1, 5.4, 'sit'], [16, 1, 5, 'sleep'], [17, -1, 14.6, 'sit'], [1, -1, 10.2, 'sleep'], [8, -1, 14.2, 'sit']]
+      .map(([k, side, l, mode]) => ({ r: H({ ...randomLook(), outfit: ['jacket', 'hoodie', 'shirt', 'tshirt'][Math.floor(Math.random() * 4)] }, k), k, side, l, mode }));
+    C.saspaGuy = C.bg[12].r; C.tunnelPax = [C.bg[3].r, C.bg[4].r, C.bg[5].r];
     // on the Абай platform: Пескаблок лақтыру
     C.builder = addMouth(makeHumanoid({ outfit: 'jacket', shirt: '#e07020', pants: '#2a3a5a', hat: 'cap', capColor: '#e0c020', skin: '#c8966e' }));
     C.block = box(0.39, 0.19, 0.19, mat('#8a8a84'), 0, 0, 0); C.block.visible = false;
@@ -161,30 +202,52 @@ export function extendDirector21(D) {
     // at the station's outer entrance (the top of the escalator): Акополексус
     const E = this.metro.esc;
     C.girl = addMouth(makeHumanoid({ hair: 'long', hairColor: '#2a1a10', outfit: 'jacket', shirt: '#e6e6f0', pants: '#2a2a3a', skin: '#e0b898' }));
-    C.girl.armR.add(box(0.08, 0.15, 0.015, mat('#111', { emissive: '#223' }), 0, -0.75, 0.08));
+    C.girl.head.add(box(0.36, 0.1, 0.36, mat('#d04060'), 0, 0.36, 0, false)); // a knitted hat
+    C.girl.armR.add(phoneProp());
     C.girl.root.position.set(EX + 0.9, MY + ESC_RISE, ESC_END + 1.7); C.girl.root.rotation.y = -2.0; E.group.add(C.girl.root);
     C.snow = makePoints(320, 0xffffff, 0.05); E.group.add(C.snow);
     C.talkers = [T.apa, T.zyp, T.otanbas, T.ctrl, T.bride, T.groom, ...T.guests, T.asaba, T.erlan, T.phoneGuy, T.leo, ...T.crew,
       C.cleaner, C.waiter, C.taksi, C.father, C.son, C.friend, C.juma, C.seller, C.listener, C.aje1, C.aje2, C.caller, C.calm,
-      C.chaiDad, C.galas, C.baha, C.cook, C.singer, C.journo, C.cam, C.guest570, C.builder, C.girl];
+      C.chaiDad, C.galas, C.baha, C.cook, C.singer, C.journo, C.cam, C.guest570, C.builder, C.girl, ...C.bg.map((b) => b.r)];
+    // standing performers are solid: you walk around them, not through them
+    [C.cleaner, C.waiter, C.juma, C.seller, C.aje1, C.aje2, C.baha, C.cook, C.journo, C.cam, C.guest570, T.ctrl, T.bride, T.groom, T.guests[0], T.asaba, T.leo]
+      .forEach((r) => (r.solid = true));
     this.buildMemeScenes();
   };
 
-  /** Where everyone sits (or stands) when they are not performing. */
+  /** Where everyone is when they are not performing: [rig, 'sit' | 'stand', side or x, wagon, l, rotation, pose].
+   *  The stage of every wagon is in its middle; standing people keep to one side so the aisle stays free. */
   P.memeHomes = function () {
     const T = this.train, C = T.cast;
     return [
-      [C.cleaner, 'stand', TX - 0.35, 1, 11, Math.PI],
-      [C.waiter, 'stand', TX + 0.55, 4, 9.8, 0], [C.taksi, 'sit', 1, 5, 9.4],
-      [C.father, 'sit', 1, 6, 4.4], [C.son, 'sit', 1, 6, 5.3], [C.friend, 'sit', -1, 6, 5.8],
-      [C.juma, 'stand', TX + 0.25, 7, 8, 0], [C.seller, 'stand', TX + 0.35, 8, 5.2, 0], [C.listener, 'sit', -1, 8, 5.6],
-      [C.aje1, 'stand', TX - 0.4, 9, 12, 0], [C.aje2, 'stand', TX + 0.4, 9, 12.2, 0],
-      [C.caller, 'sit', 1, 10, 4.8], [C.calm, 'sit', 1, 10, 5.7],
-      [C.chaiDad, 'sit', -1, 11, 4.2], [C.galas, 'sit', 1, 11, 9.2], [C.baha, 'stand', TX - 0.3, 11, 13, 0],
-      [C.cook, 'stand', TX + 0.25, 12, 5.2, 0], [C.singer, 'sit', -1, 12, 12],
-      [C.journo, 'stand', TX - 0.35, 13, 4.4, Math.PI / 2 + 0.4], [C.cam, 'stand', TX + 0.55, 13, 3.0, Math.PI - 0.5], [C.guest570, 'stand', TX + 0.35, 13, 5.2, -Math.PI / 2 - 0.4],
-      [T.leo, 'stand', TX, 13, 12, 0, 'rap'],
+      [T.apa, 'sit', 1, 1, 6.4], [C.cleaner, 'stand', TX - 0.6, 1, 13.2, 0],
+      [T.zyp, 'sit', -1, 2, 9.6], [T.bg2[0], 'sit', 1, 2, 5.6, 0, 'sleep'], [T.bg2[1], 'sit', -1, 2, 14],
+      [T.otanbas, 'sit', 1, 3, 6.2], [T.ctrl, 'stand', TX + 0.3, 3, 13.4, 0],
+      [T.bride, 'stand', TX + 0.6, 4, 5.4, Math.PI, 'dance'], [T.groom, 'stand', TX + 0.6, 4, 6.3, 0, 'dance'],
+      [T.guests[0], 'stand', TX + 0.6, 4, 10.6, 0, 'dance'], [T.guests[1], 'sit', -1, 4, 11.2],
+      [T.asaba, 'stand', TX + 0.6, 4, 12.2, 0], [T.cat, 'sit', 1, 4, 14.6], [C.waiter, 'stand', TX - 0.6, 4, 13.4, 0],
+      [T.erlan, 'sit', 1, 5, 6.0], [T.phoneGuy, 'sit', -1, 5, 6.6], [C.taksi, 'sit', 1, 5, 10.4],
+      [C.father, 'sit', 1, 6, 9.6], [C.son, 'sit', 1, 6, 10.5], [C.friend, 'sit', -1, 6, 10.2],
+      [C.juma, 'stand', TX + 0.6, 7, 8.5, 0],
+      [C.seller, 'stand', TX + 0.5, 8, 8.4, 0], [C.listener, 'sit', -1, 8, 9.2],
+      [C.aje1, 'stand', TX + 0.6, 10, 7.6, 0], [C.aje2, 'stand', TX + 0.6, 10, 8.6, 0],
+      [C.caller, 'sit', 1, 11, 9.4], [C.calm, 'sit', 1, 11, 10.3],
+      [C.chaiDad, 'sit', -1, 13, 9.4],
+      [C.galas, 'sit', 1, 14, 5.6], [C.baha, 'stand', TX + 0.6, 14, 10, 0],
+      [C.cook, 'stand', TX + 0.15, 15, 8.4, 0], [C.singer, 'sit', -1, 16, 9.4],
+      [C.journo, 'stand', TX - 0.6, 17, 5.6, 0.5], [C.cam, 'stand', TX + 0.65, 17, 4.6, -0.3], [C.guest570, 'stand', TX + 0.6, 17, 7.0, -0.4],
+      [T.leo, 'stand', TX + 0.55, 17, 11.6, 0, 'rap'],
+      ...T.crew.map((r, i) => [r, 'stand', TX + (i % 2 ? 0.85 : -0.85), 17, 13.2 + Math.floor(i / 2) * 1.1, 0]),
+      ...C.bg.map((b) => [b.r, 'sit', b.side, b.k, b.l, 0, b.mode]),
     ];
+  };
+
+  P.memeHome = function ([r, mode, a, k, l, ry = 0, m2]) {
+    if (r.root.parent !== this.train.group) this.train.group.attach(r.root);
+    if (mode === 'sit') { r.root.position.set(TX + a * 1.15, MY, L(k, l)); r.root.rotation.set(0, -a * Math.PI / 2, 0); r.mode = m2 || 'sit'; }
+    else { r.root.position.set(a, MY, L(k, l)); r.root.rotation.set(0, ry, 0); r.mode = m2 || 'stand'; }
+    r.spd = 0; r.gesture = null;
+    if (r.act) { r.act.show = true; r.act.k = k; }
   };
 
   const origReset = P.resetTrain;
@@ -192,11 +255,10 @@ export function extendDirector21(D) {
     origReset.call(this);
     const T = this.train, C = T.cast;
     if (!C) return;
-    // the chapter 20 horror is gone: nobody chases, nothing jumps at you, no door is ever locked
+    // the chapter 20 chases are gone; the horror of the night train is chapter 22
     for (const r of [T.bear, T.karate, T.aksakal, T.apa2, T.youth, T.seller]) r.act.show = false;
-    T.dark9.visible = false; T.driver.visible = false; T.ticket.visible = false; T.ticketOut = false; T.disc.visible = false;
-    T.doors.forEach((d) => { d.locked = false; d.passed = false; });
-    T.crew.forEach((r, i) => { r.act.show = true; r.root.position.set(TX - 0.75 + i * 0.5, 0, 0); r.root.position.set(TX - 0.75 + i * 0.5, MY, L(13, 13.6 + (i % 2) * 0.5)); r.root.rotation.set(0, 0, 0); r.mode = 'stand'; });
+    T.dark9.visible = false; T.ticket.visible = false; T.ticketOut = false; T.disc.visible = false;
+    T.doors.forEach((d) => { d.locked = false; d.passed = false; d.force = undefined; });
     for (const h of this.memeHomes()) this.memeHome(h);
     for (const r of C.talkers) { r.talkUntil = 0; r.gesture = null; }
     C.mop.visible = true; C.water.visible = false; C.steam.visible = false; C.snow.visible = false;
@@ -205,12 +267,6 @@ export function extendDirector21(D) {
     this.drawTv('idle', 0);
     T.mscenes.forEach((s) => { s.played = false; });
     T.mBusy = null; T.cabDone = false;
-  };
-
-  P.memeHome = function ([r, mode, a, k, l, ry = 0, m2]) {
-    if (mode === 'sit') { r.root.position.set(TX + a * 1.15, MY, L(k, l)); r.root.rotation.set(0, -a * Math.PI / 2, 0); r.mode = 'sit'; }
-    else { r.root.position.set(a, MY, L(k, l)); r.root.rotation.set(0, ry, 0); r.mode = m2 || 'stand'; }
-    r.spd = 0; if (r.act) r.act.show = true;
   };
 
   // ================================================================ talking: subtitles, a moving mouth, a voice in 3D space
@@ -248,7 +304,18 @@ export function extendDirector21(D) {
     if (C.cleaner.root.visible) {
       const c = C.cleaner, s = Math.sin(G.time * 2.4);
       c.armL.rotation.x = c.armR.rotation.x = -0.9 + s * 0.25;
-      C.mop.position.set(c.root.position.x + s * 0.35, MY, c.root.position.z - 0.55); C.mop.rotation.set(0.35, 0, s * 0.25);
+      C.mop.position.set(c.root.position.x + s * 0.35, MY, c.root.position.z + 0.55); C.mop.rotation.set(-0.35, 0, s * 0.25);
+    }
+  };
+
+  /** Standing people are solid: push the player out of them. */
+  P.memePush = function (curK) {
+    const Pl = this.G.player, T = this.train;
+    for (const a of T.actors) {
+      const r = a.rig;
+      if (!r.solid || !a.root.visible || a.k !== curK || a.root.parent !== T.group) continue;
+      const p = a.root.position, dx = Pl.pos.x - p.x, dz = Pl.pos.z - p.z, d = Math.hypot(dx, dz), R = 0.6;
+      if (d < R && d > 1e-4) { Pl.pos.x = p.x + dx / d * R; Pl.pos.z = p.z + dz / d * R; }
     }
   };
 
@@ -266,34 +333,36 @@ export function extendDirector21(D) {
     C.tvTex.needsUpdate = true;
   };
 
-  // ================================================================ the scenes
+  // ================================================================ the scenes (a stage in the middle of every wagon)
   P.buildMemeScenes = function () {
-    const T = this.train, C = T.cast;
-    const S = (id, k, l, r, gen, x = TX) => ({ id, k, anchor: V(x, MY, L(k, l)), r, gen, played: false });
+    const T = this.train;
+    const S = (id, k, l, r, gen) => ({ id, k, anchor: V(TX, MY, L(k, l)), r, gen, played: false });
     T.mscenes = [
-      S('dubara', 1, 4.6, 4, this.mDubara), S('shlabra', 1, 11, 3.2, this.mShlabra),
-      S('zyp25', 2, 8.6, 4, this.mZyp),
-      S('otanbas', 3, 2.2, 4.5, this.mOtanbas),
-      S('wedding', 4, 7.2, 2.6, this.mWedding),
-      S('kaspi', 5, 3.4, 4, this.mKaspi),
-      S('gazel', 6, 5, 4.5, this.mGazel),
-      S('jumaisynba', 7, 8, 5, this.mJuma),
-      S('oylashy', 8, 5.2, 4.5, this.mOylashy),
-      S('debit', 9, 4, 4, this.mDebit), S('aiaje', 9, 12, 4, this.mAiaje),
-      S('geodez', 10, 5.2, 4.5, this.mGeodez),
-      S('chai', 11, 4.2, 3.6, this.mChai), S('galasubui', 11, 9.2, 3, this.mGalas), S('baha', 11, 13, 3, this.mBaha),
-      S('lagman', 12, 5.4, 4.2, this.mLagman), S('ibunqu', 12, 12, 3.4, this.mIbunqu),
-      S('t570', 13, 4.4, 4.5, this.mT570), S('bars', 13, 12, 4.5, this.mBars),
+      S('dubara', 1, 6.4, 6, this.mDubara), S('shlabra', 1, 13.2, 3.4, this.mShlabra),
+      S('zyp25', 2, 9.6, 6, this.mZyp),
+      S('otanbas', 3, 6.2, 6.2, this.mOtanbas),
+      S('wedding', 4, 6.8, 6.4, this.mWedding),
+      S('kaspi', 5, 6.3, 6, this.mKaspi),
+      S('gazel', 6, 10, 6.4, this.mGazel),
+      S('jumaisynba', 7, 8.5, 6.2, this.mJuma),
+      S('oylashy', 8, 8.4, 6.2, this.mOylashy),
+      S('debit', 9, 8, 6.2, this.mDebit),
+      S('aiaje', 10, 8.1, 6.4, this.mAiaje),
+      S('geodez', 11, 9.8, 6.2, this.mGeodez),
+      S('chai', 13, 9.4, 6.2, this.mChai),
+      S('galasubui', 14, 5.6, 3.4, this.mGalas), S('baha', 14, 10, 5, this.mBaha),
+      S('lagman', 15, 8.6, 6.2, this.mLagman),
+      S('ibunqu', 16, 9.4, 5, this.mIbunqu),
+      S('t570', 17, 6.2, 6, this.mT570), S('bars', 17, 11.6, 4.6, this.mBars),
     ];
-    C.voices = new Map();
   };
 
   // 2 — a cockroach runs out from under the seat: «Ей, дүбәрә!»
   P.mDubara = function* () {
     const G = this.G, T = this.train, a = T.apa, r = T.roach;
-    r.visible = true; r.position.set(TX + 0.95, MY + 0.01, L(1, 3.2));
+    r.visible = true; r.position.set(TX + 1.1, MY + 0.01, L(1, 5.4));
     let t = 0;
-    while (t < 1.1) { t += G.dt; r.position.x -= 1.0 * G.dt; r.position.z -= 1.4 * G.dt; r.rotation.y = Math.atan2(-1.0, -1.4); yield 0; }
+    while (t < 1.2) { t += G.dt; r.position.x -= 1.1 * G.dt; r.position.z += 1.2 * G.dt; r.rotation.y = Math.atan2(-1.1, 1.2); yield 0; }
     a.mode = 'stand'; this.trainFace(a);
     G.ui.big('ЕЙ, ДҮБӘРӘ!', 1.8, 'red');
     yield this.mSay(a, 'Апа', 'ЕЙ, ДҮБӘРӘ!', '#f9c', 1.8);
@@ -319,7 +388,7 @@ export function extendDirector21(D) {
     const chunks = ['Сәлем-бауырым-қалайсың-жақсысың-ба-мен-жақсымын-', 'бүгін-жұмыстан-шықтым-бастық-айлық-жоқ-', 'несие-бар-ипотека-бар-той-болады-',
       'метро-кешікті-автобус-кешікті-өмір-кешікті-', 'ал-сен-қалайсың-бауырым-'];
     z.talkUntil = G.time + chunks.length * 0.6;
-    if (!G.audio.speak(chunks.join(' ').replace(/-/g, ' '), { lang: 'kk', pitch: 1.3, rate: 3.5 })) z.tts = false; else z.tts = true;
+    z.tts = !!G.audio.speak(chunks.join(' ').replace(/-/g, ' '), { lang: 'kk', pitch: 1.3, rate: 3.5 });
     for (const ch of chunks) { if (z.root.position.distanceTo(G.camera.position) < 14) G.ui.say(ch, 'Зыпылдаған 25', 0.6, '#ff8'); yield 0.6; }
     this.collectMeme('zyp25');
     yield 0.6;
@@ -329,8 +398,7 @@ export function extendDirector21(D) {
   // 4 — «Білетіңіз қайда?» «Менің атым Отанбас.» «Білетіңіз бар ма?» «Жоқ.» «Жүр, түсеміз.»
   P.mOtanbas = function* () {
     const G = this.G, T = this.train, c = T.ctrl, o = T.otanbas;
-    let walk = [TX + 0.42, L(3, 2.2), 2.2];
-    while (!this.trainWalk(c, walk[0], walk[1], walk[2], G.dt)) yield 0;
+    while (!this.trainWalk(c, TX + 0.4, L(3, 6.2), 2.2, G.dt)) yield 0;
     c.mode = 'stand'; c.root.rotation.y = Math.PI / 2; c.voice = 0.85; o.voice = 1.1;
     yield 0.3;
     yield this.mSay(c, 'Контролер', 'Білетіңіз қайда?', '#9cf');
@@ -339,22 +407,23 @@ export function extendDirector21(D) {
     yield this.mSay(o, 'Отанбас', 'Жоқ.', '#fc8', 1.6);
     yield this.mSay(c, 'Контролер', 'Жүр, түсеміз.', '#9cf');
     this.collectMeme('otanbas');
-    // Жібек жолы: they get off together
+    // Жібек жолы: they get off together, through the door at 8 m
     let off = false;
-    this.task(function* () { yield* this.trainStop(4, 4, () => off); });
+    this.task(function* () { yield* this.trainStop(4, 5, () => off); });
     o.mode = 'stand';
     yield () => T.phase === 'stopped' && T.sideOpen > 0.85;
-    walk = [TX + 2.9, L(3, 3.2), 1.6];
-    while (!this.trainWalk(o, walk[0], walk[1], walk[2], G.dt)) { this.trainWalk(c, TX + 1.6, L(3, 3.6), 1.4, G.dt); yield 0; }
+    while (!this.trainWalk(o, TX + 0.95, L(3, 8), 1.6, G.dt)) { this.trainWalk(c, TX + 0.3, L(3, 7.2), 1.4, G.dt); yield 0; }
+    while (!this.trainWalk(o, TX + 2.9, L(3, 8), 1.6, G.dt)) yield 0;
     T.plat.attach(o.root); o.mode = 'stand';
-    while (!this.trainWalk(c, TX + 2.9, L(3, 3.4), 1.6, G.dt)) yield 0;
+    while (!this.trainWalk(c, TX + 0.95, L(3, 8.2), 1.6, G.dt)) yield 0;
+    while (!this.trainWalk(c, TX + 2.9, L(3, 8.4), 1.6, G.dt)) yield 0;
     T.plat.attach(c.root); c.mode = 'stand';
     off = true;
   };
 
   // 5 — the wedding: the cake, «Қайттық Шауілдірге», the clapping cat, the toast, «Чиви қайда?»
   P.mWedding = function* () {
-    const G = this.G, T = this.train, Pl = G.player, C = T.cast;
+    const G = this.G, T = this.train, C = T.cast;
     const ppl = [T.bride, T.groom, ...T.guests, T.asaba];
     this.trainJolt();
     if (T.weddingMusic) { T.weddingMusic.stop(); T.weddingMusic = null; }
@@ -373,7 +442,7 @@ export function extendDirector21(D) {
     this.collectMeme('cake');
     yield this.mSay(T.guests[1], 'Қонақ', 'Ұят-ай... Қайттық Шауілдірге! (What a shame... we are going back to Shauildir!)', '#ccc');
     this.collectMeme('shauildir');
-    T.cat.mode = 'clap'; T.cat.root.position.x = TX + 0.7;
+    T.cat.mode = 'clap';
     let t = 0; while (t < 2) { t += G.dt; if (Math.sin(G.time * 9) > 0.97) G.audio.clap(0.25); yield 0; }
     ppl.forEach((r) => (r.mode = 'clap'));
     t = 0; while (t < 3.6) { t += G.dt; ppl.forEach((r) => this.trainFace(r)); if (Math.random() < G.dt * 14) G.audio.clap(0.45); yield 0; }
@@ -386,14 +455,14 @@ export function extendDirector21(D) {
     T.weddingQuiet = false;
     // the waiter has served the tea... and wants his tip
     const w = C.waiter;
-    while (!this.trainWalk(w, TX + 0.35, T.groom.root.position.z - 0.7, 1.4, G.dt)) yield 0;
-    w.mode = 'stand'; this.trainFace(w); w.root.rotation.y = Math.atan2(T.groom.root.position.x - w.root.position.x, T.groom.root.position.z - w.root.position.z);
+    while (!this.trainWalk(w, TX - 0.2, T.groom.root.position.z - 0.6, 1.4, G.dt)) yield 0;
+    w.mode = 'stand'; w.root.rotation.y = Math.atan2(T.groom.root.position.x - w.root.position.x, T.groom.root.position.z - w.root.position.z);
     yield this.mSay(w, 'Даяшы', 'Шай дайын. (The tea is ready.)', '#eee');
     yield this.mSay(w, 'Даяшы', 'Чиви қайда? (Where is the tip?)', '#eee');
     this.collectMeme('chivi');
     yield 1;
-    this.memeHome([w, 'stand', TX + 0.55, 4, 9.8, 0]);
-    T.cat.mode = 'sit'; T.cat.root.position.x = TX + 1.15;
+    this.memeHome([w, 'stand', TX - 0.6, 4, 13.4, 0]);
+    T.cat.mode = 'sit';
   };
 
   // 6 — Kaspi, «Цунбятрм», the phone on credit, «Түрі такси ұстап кетті», «Қол қойдым»
@@ -409,7 +478,7 @@ export function extendDirector21(D) {
     // he does not understand what just happened, and types it to his friend
     e.gesture = (r) => { r.armR.rotation.x = -1.1; r.head.rotation.x = 0.4; };
     G.audio.beep(e.head.getWorldPosition(V()), 1500, 0.05, 0.12, 'square');
-    G.ui.say('(he types to his friend: «цунбятрм»)', 'Ерлан', 3, '#ccc');
+    G.ui.phone('Ерлан → досы', 'цунбятрм');
     this.collectMeme('tsunbyatrm');
     yield 3.2;
     e.gesture = null;
@@ -417,7 +486,7 @@ export function extendDirector21(D) {
     yield 0.8;
     this.trainJolt();
     T.phoneProp.visible = false;
-    const p = G.props.spawn(box(0.08, 0.015, 0.15, mat('#111')), ph.root.position.clone().setY(MY + 1.0), V(0, 1, -1.2),
+    const p = G.props.spawn(box(0.08, 0.015, 0.15, mat('#111')), ph.root.position.clone().setY(MY + 1.0), V(0.6, 1, -0.4),
       { kind: 'phone', r: 0.03, thrown: false, onLand: (pp) => { if (!pp.cr) { pp.cr = 1; G.audio.crunch(pp.pos, 0.6); } } });
     this.after(20, () => G.props.remove(p));
     yield 1.3;
@@ -428,7 +497,7 @@ export function extendDirector21(D) {
     this.collectMeme('taksi');
     yield this.mSay(ph, 'Жолаушы', '...Қол қойдым. (...I give up.)', '#ccc', 2.2);
     this.collectMeme('qolqoidym');
-    ph.mode = 'sit'; ph.root.rotation.y = Math.PI / 2; ph.root.position.set(TX - 1.15, MY, L(5, 6.2));
+    this.memeHome([ph, 'sit', -1, 5, 6.6]);
   };
 
   // Абай platform — Пескаблок лақтыру
@@ -437,13 +506,10 @@ export function extendDirector21(D) {
     b.root.visible = true; b.root.position.set(TX + 5.2, MY, 2); b.root.rotation.set(0, -Math.PI / 2 - 0.4, 0); b.mode = 'stand';
     bl.visible = true;
     let t = 0;
-    while (t < 1.2) { // the wind-up
-      t += G.dt; pose(b, 'windup', G.dt, G.time, 0);
-      bl.position.copy(b.root.position).add(V(0.25, 1.5 + Math.sin(t * 3) * 0.1, 0.3)); yield 0;
-    }
+    while (t < 1.2) { t += G.dt; pose(b, 'windup', G.dt, G.time, 0); bl.position.copy(b.root.position).add(V(0.25, 1.5 + Math.sin(t * 3) * 0.1, 0.3)); yield 0; }
     const from = bl.position.clone(), to = V(TX + 3.4, MY + 0.1, -3.5);
     t = 0;
-    while (t < 0.7) { // the throw
+    while (t < 0.7) {
       t += G.dt; const u = Math.min(1, t / 0.7);
       bl.position.lerpVectors(from, to, u); bl.position.y += Math.sin(u * Math.PI) * 1.4; bl.rotation.x += G.dt * 9;
       pose(b, 'punch', G.dt, G.time, 0); yield 0;
@@ -473,17 +539,16 @@ export function extendDirector21(D) {
   // 8 — «Жумайсынба»: a man in a black leather jacket, dandruff, a shampoo, a kettle
   P.mJuma = function* () {
     const G = this.G, C = this.train.cast, j = C.juma;
-    this.trainFace(j); j.voice = 0.9;
+    j.voice = 0.9;
     j.gesture = (r) => { r.armL.rotation.x = -1.3; };
     yield this.mSay(j, 'Жігіт', 'Қайызғақ па? Иығыңа қарашы, бауырым. (Dandruff? Look at your shoulders, bro.)', '#ddd');
     yield this.mSay(j, 'Жігіт', 'Жумайсынба?! Мына шампунь — қайызғаққа қарсы! (Don\'t you wash?! This shampoo fights dandruff!)', '#ddd');
-    // he washes his head with the kettle
     j.gesture = (r, t) => { r.armR.rotation.x = -2.7; r.armR.rotation.z = 0.35; C.kettle.rotation.x = 1.2 + Math.sin(t * 3) * 0.15; r.armL.rotation.x = -2.5; };
     C.water.visible = true;
-    let t = 0;
     const pos = C.water.geometry.attributes.position, head = () => j.head.getWorldPosition(V());
     for (let i = 0; i < 60; i++) { const h = head(); pos.setXYZ(i, h.x + rand(-0.12, 0.12), h.y + rand(0.2, 0.6), h.z + rand(-0.12, 0.12)); }
-    G.audio.loop && (C.pour = G.audio.loop('rain', head()));
+    C.pour = G.audio.loop('rain', head());
+    let t = 0;
     while (t < 3.2) {
       t += G.dt; const h = head();
       for (let i = 0; i < 60; i++) { let y = pos.getY(i) - G.dt * rand(1.6, 2.6); if (y < MY + 0.05) y = h.y + 0.55; pos.setXYZ(i, h.x + rand(-0.14, 0.14), y, h.z + rand(-0.14, 0.14)); }
@@ -500,7 +565,7 @@ export function extendDirector21(D) {
   // 9 — «Ойлашы»: the clothes seller imagines life for you
   P.mOylashy = function* () {
     const C = this.train.cast, s = C.seller;
-    this.trainFace(s); s.voice = 1.05;
+    s.voice = 1.05;
     s.gesture = (r, t) => { r.armR.rotation.x = -1.2 + Math.sin(t * 2) * 0.1; };
     yield this.mSay(s, 'Сатушы', 'Ойлашы... тойға барасың. Үстіңде — осы күртеше. (Imagine... you go to a wedding, wearing this jacket.)', '#fd8');
     yield this.mSay(C.listener, 'Жолаушы', 'Әкет, әкет! (Go on, go on!)', '#ccc', 2);
@@ -517,17 +582,17 @@ export function extendDirector21(D) {
   P.mDebit = function* () {
     const G = this.G, C = this.train.cast;
     const song = G.audio.loop('music', C.tv.getWorldPosition(V()));
-    let t = 0;
+    let t = 0, last = -1;
     while (t < 9) {
       t += G.dt; this.drawTv('ad', t);
-      if (Math.floor(t / 3) !== Math.floor((t - G.dt) / 3) || t === G.dt) G.ui.say('🎵 Дебит тищ теңге... тоғыз мың теңге! 🎵', '📺 Жарнама', 2.6, '#fd6');
+      if (Math.floor(t / 3) !== last) { last = Math.floor(t / 3); G.ui.say('🎵 Дебит тищ теңге... тоғыз мың теңге! 🎵', '📺 Жарнама', 2.6, '#fd6'); }
       yield 0;
     }
     song.stop(); this.drawTv('idle', 0);
     this.collectMeme('debit');
   };
 
-  // 10 — AI grandmas rap and advertise
+  // 11 — AI grandmas rap and advertise
   P.mAiaje = function* () {
     const G = this.G, C = this.train.cast, a1 = C.aje1, a2 = C.aje2;
     const beat = G.audio.loop('hiphop', a1.root.getWorldPosition(V()).setY(MY + 1.2));
@@ -541,7 +606,7 @@ export function extendDirector21(D) {
     a1.mode = a2.mode = 'stand';
   };
 
-  // 11 — «Геодезическая 12»: he calls the police and explains the address again and again
+  // 12 — «Геодезическая 12»: he calls the police and explains the address again and again
   P.mGeodez = function* () {
     const C = this.train.cast, c = C.caller;
     c.voice = 1.05;
@@ -550,21 +615,20 @@ export function extendDirector21(D) {
     yield this.mSay(c, 'Жолаушы', 'Жоқ... Ге-о-де-зи-чес-ка-я. Он екі! (No... Ge-o-de-zi-ches-ka-ya. Twelve!)', '#cdf');
     yield this.mSay(c, 'Жолаушы', 'ГЕОДЕЗИЧЕСКАЯ 12! Иә, иә, он екі! (GEODEZICHESKAYA 12! Yes, yes, twelve!)', '#cdf');
     this.collectMeme('geodez');
-    yield this.mSay(C.calm, 'Көршісі', 'Саспа, бауырым. (Don\'t worry, bro.)', '#ccc', 2);
-    this.collectMeme('saspa');
+    yield this.mSay(C.calm, 'Көршісі', 'Қазір келеді, бауырым. (They are coming, bro.)', '#ccc', 2);
     yield this.mSay(c, 'Жолаушы', '...трубканы қойып тастады. Қораға кірдік. (...they hung up. Well, that went wrong.)', '#cdf');
     this.collectMeme('qoragha');
     c.gesture = null;
   };
 
-  // 12 — «Чай поставьте»: every message gets the same answer
+  // 14 — «Чай поставьте»: every message gets the same answer
   P.mChai = function* () {
     const G = this.G, C = this.train.cast, d = C.chaiDad;
     d.voice = 0.85;
     d.gesture = (r) => { r.armR.rotation.x = -1.1; r.head.rotation.x = 0.35; };
     for (const msg of ['Әке, қайдасыз? (Dad, where are you?)', 'Үйге қашан келесіз? (When are you coming home?)', 'Нан алып келіңізші (Can you buy some bread?)']) {
       G.audio.beep(d.head.getWorldPosition(V()), 1320, 0.08, 0.15, 'sine');
-      if (d.root.position.distanceTo(G.camera.position) < 14) G.ui.say(`💬 ${msg}`, 'Хабарлама', 2.2, '#9c9');
+      if (d.root.position.distanceTo(G.camera.position) < 14) G.ui.phone('💬 Отбасы чаты', msg);
       yield 2.3;
       yield this.mSay(d, 'Әке', 'Чай поставьте.', '#fb8', 1.9);
     }
@@ -572,7 +636,7 @@ export function extendDirector21(D) {
     d.gesture = null;
   };
 
-  // 12 — «Галасубуй»: send a voice message
+  // 15 — «Галасубуй»: send a voice message
   P.mGalas = function* () {
     const C = this.train.cast;
     C.galas.gesture = (r) => { r.armR.rotation.x = -1.6; };
@@ -581,7 +645,7 @@ export function extendDirector21(D) {
     C.galas.gesture = null;
   };
 
-  // 12 — «Баха, звандама маған» and the blue bag, «Көк пакет Айген»
+  // 15 — «Баха, звандама маған» and the blue bag, «Көк пакет Айген»
   P.mBaha = function* () {
     const C = this.train.cast, b = C.baha;
     b.voice = 0.95;
@@ -595,16 +659,15 @@ export function extendDirector21(D) {
     b.gesture = null;
   };
 
-  // 13 — «Мощный и сочный лагман»
+  // 16 — «Мощный и сочный лагман»
   P.mLagman = function* () {
-    const G = this.G, C = this.train.cast, c = C.cook;
-    this.trainFace(c); c.voice = 0.9;
+    const C = this.train.cast, c = C.cook;
+    c.voice = 0.9;
     c.gesture = (r, t) => { r.armR.rotation.x = -1.0 + Math.sin(t * 6) * 0.35; r.armR.rotation.z = Math.cos(t * 6) * 0.25; };
     C.steam.visible = true;
     const pos = C.steam.geometry.attributes.position, sp = C.stove.position;
-    for (let i = 0; i < 50; i++) pos.setXYZ(i, sp.x + rand(-0.2, 0.2), MY + 0.3 + rand(0, 1.4), sp.z + rand(-0.2, 0.2));
-    const steam = (dt) => { for (let i = 0; i < 50; i++) { let y = pos.getY(i) + dt * rand(0.4, 0.8); if (y > MY + 1.9) y = MY + 0.32; pos.setXYZ(i, sp.x + rand(-0.2, 0.2), y, sp.z + rand(-0.2, 0.2)); } pos.needsUpdate = true; };
-    c.cooking = steam;
+    for (let i = 0; i < 50; i++) pos.setXYZ(i, sp.x + rand(-0.2, 0.2), MY + 1.0 + rand(0, 1.0), sp.z + rand(-0.2, 0.2));
+    c.cooking = (dt) => { for (let i = 0; i < 50; i++) { let y = pos.getY(i) + dt * rand(0.4, 0.8); if (y > MY + 2.2) y = MY + 1.02; pos.setXYZ(i, sp.x + rand(-0.2, 0.2), y, sp.z + rand(-0.2, 0.2)); } pos.needsUpdate = true; };
     yield this.mSay(c, 'Аспаз', 'Қарашы, бауырым... (Look, bro...)', '#fd8', 2);
     yield this.mSay(c, 'Аспаз', 'Мощный и сочный лагман! (A powerful and juicy lagman!)', '#fd8');
     yield this.mSay(c, 'Аспаз', 'Мощный... и сочный! (Powerful... and juicy!)', '#fd8');
@@ -612,7 +675,7 @@ export function extendDirector21(D) {
     c.gesture = (r, t) => { r.armR.rotation.x = -1.0 + Math.sin(t * 3) * 0.2; };
   };
 
-  // 13 — «Ибұңқұ-ибұңқұ»: a few lines of the song
+  // 17 — «Ибұңқұ-ибұңқұ»: a few lines of the song
   P.mIbunqu = function* () {
     const G = this.G, C = this.train.cast, s = C.singer;
     s.voice = 1.2;
@@ -627,7 +690,7 @@ export function extendDirector21(D) {
     s.gesture = null;
   };
 
-  // 14 — «570 теңге бердім»: a street interview, in the train
+  // 18 — «570 теңге бердім»: a street interview, in the train
   P.mT570 = function* () {
     const C = this.train.cast, j = C.journo, g = C.guest570;
     j.gesture = (r) => { r.armR.rotation.x = -1.4; r.armR.rotation.z = -0.4; };
@@ -640,7 +703,7 @@ export function extendDirector21(D) {
     j.gesture = null; g.gesture = null;
   };
 
-  // 14 — Барыс MC raps, the 67 crew answers
+  // 18 — Барыс MC raps, the 67 crew answers
   P.mBars = function* () {
     const G = this.G, T = this.train, leo = T.leo;
     const beat = G.audio.loop('hiphop', leo.root.getWorldPosition(V()).setY(MY + 1));
@@ -666,7 +729,6 @@ export function extendDirector21(D) {
     yield this.mSay(g, 'Қыз', 'Акапалепсис... жоқ... АКОПОЛЕКСУС! (Akapalepsis... no... AKOPOLEKSUS!)', '#f9c');
     G.audio.laugh(g.head.getWorldPosition(V()), 0.3, 1.6);
     this.collectMeme('akopoleksus');
-    g.gesture = (r) => { r.armR.rotation.x = -1.9; };
   };
 
   // ================================================================ per frame: free walking, scenes on approach
@@ -681,6 +743,7 @@ export function extendDirector21(D) {
     this.trainActors(dt, curK);
     this.trainPlatformTick(dt);
     this.memeTick(dt);
+    this.memePush(curK);
     const C = T.cast;
     if (C.cook.cooking && C.cook.root.visible) C.cook.cooking(dt);
     // the train stops at the stations on the way
@@ -695,22 +758,22 @@ export function extendDirector21(D) {
         if (s.played || s.k !== curK) continue;
         if (Math.hypot(Pl.pos.x - s.anchor.x, Pl.pos.z - s.anchor.z) < s.r) {
           s.played = true; T.mBusy = s;
-          this.task(function* () { yield* s.gen.call(this); T.mBusy = null; if (T.mscenes.every((x) => x.played)) this.achieve('m_memetrain'); });
+          this.task(function* () { yield* s.gen.call(this); if (T.mBusy === s) T.mBusy = null; if (T.mscenes.every((x) => x.played)) this.achieve('m_memetrain'); });
           break;
         }
       }
     }
-    // the driver's cab: nobody is driving. And ahead in the tunnel...
     if (!T.cabDone && Pl.pos.z < CAB0 - 1.1) { T.cabDone = true; this.task(this.memeCabTask); }
     this.trainHud(curK);
   };
 
-  /** Every door opens when you come close, from either side, and closes when you walk away. */
+  /** Every door opens when you come close, from either side, and closes when you walk away.
+   *  d.force (1 / 0) overrides that for a moment (chapter 22). */
   P.memeDoors = function (dt) {
     const G = this.G, T = this.train, Pl = G.player;
     for (const d of T.doors) {
       const dz = Pl.pos.z - (zFront(d.k) - 0.09), near = Math.abs(dz) < 1.9 && Math.abs(Pl.pos.x - TX) < 1.3;
-      const t = near ? 1 : 0;
+      const t = d.force !== undefined ? d.force : near ? 1 : 0;
       if (t !== d.target) { d.target = t; if (t) G.audio.whoosh(0.12); }
       d.open += (d.target - d.open) * Math.min(1, dt * 7);
       d.leaf.position.x = TX + 1.05 * d.open;
@@ -722,18 +785,23 @@ export function extendDirector21(D) {
     const T = this.train, M = this.metro;
     if (this.G.frame % 6) return;
     const next = [5, 4, 3, 2, 1, 0].find((v) => !T.stopsDone[v]);
-    const at = T.plat.visible && T.phase !== 'run' ? `Бекет: ${{ 5: 'Райымбек батыр', 4: 'Жібек жолы', 3: 'Абай', 2: 'Туннель 404', 1: 'Шексіз бекет ∞', 0: 'Жер беті' }[T.platLvl]}` :
-      `Келесі бекет: ${{ 5: 'Райымбек батыр', 4: 'Жібек жолы', 3: 'Абай', 2: 'Туннель 404', 1: 'Шексіз бекет ∞', 0: 'Жер беті' }[next ?? 0]}`;
+    const at = T.plat.visible && T.phase !== 'run' ? `Бекет: ${STATIONS[T.platLvl]}` : `Келесі бекет: ${STATIONS[next ?? 0]}`;
     const left = T.mscenes.filter((s) => s.k === curK && !s.played).length;
-    M.hud.innerHTML = `<b>METRO 404 · ВАГОН ${curK + 1}/${NW} · ${T.cabDone ? 'Жүргізуші кабинасы' : WNAME[curK]}</b>` +
-      `<br><small>${at} · ${left ? `${left} meme${left > 1 ? 's' : ''} here: walk up to them` : 'walk on, forward or back'} · J: meme book</small>`;
+    M.hud.innerHTML = `<b>METRO 404 · ВАГОН ${curK + 1}/${NW} · ${T.inCab ? 'Жүргізуші кабинасы' : WNAME[curK]}</b>` +
+      `<br><small>${at} · ${left ? `${left} meme${left > 1 ? 's' : ''} ahead: walk up to them` : 'walk on, forward or back'} · J: meme book</small>`;
   };
 
+  /** The driver's cab (chapter 22 adds the driver himself). */
   P.memeCabTask = function* () {
-    const G = this.G, T = this.train, Pl = G.player;
+    const G = this.G, T = this.train;
     T.inCab = true;
     G.ui.say('(the driver\'s seat is empty. Nobody is driving this train.)', '', 3.4);
     yield 3.6;
+    yield* this.memeTail();
+  };
+
+  P.memeTail = function* () {
+    const G = this.G, T = this.train;
     T.tail.visible = true; T.tail.position.z = CAB1 - 48; T.tailTo = CAB1 - 13;
     G.ui.say('(ahead in the tunnel: the last wagon of a train... and in its back window, the horse waves at you.)', '', 4.4);
     this.collectMeme('tail'); G.audio.infrasound(5, 0.4);
@@ -753,8 +821,9 @@ export function extendDirector21(D) {
     T.group.add(M.paper); M.paper.visible = true; M.paper.material.map = T.memeRulesTex || (T.memeRulesTex = txt(256, 192, (ctx) => {
       ctx.fillStyle = '#e8e2cc'; ctx.fillRect(0, 0, 256, 192); ctx.textAlign = 'center';
       ctx.fillStyle = '#a00'; ctx.font = 'bold 24px Georgia, serif'; ctx.fillText('4090 TIMES', 128, 32);
-      ctx.fillStyle = '#111'; ctx.font = 'bold 21px Arial'; ctx.fillText('МЕТРОДА МЕМДЕР', 128, 74); ctx.fillText('ТІРІЛІП КЕТТІ!', 128, 104);
-      ctx.font = '13px monospace'; ctx.fillText('the memes came alive in the metro', 128, 140); ctx.fillText('— go and see them', 128, 162);
+      ctx.fillStyle = '#111'; ctx.font = 'bold 21px Arial'; ctx.fillText('МЕТРОДА МЕМДЕР', 128, 70); ctx.fillText('ТІРІЛІП КЕТТІ!', 128, 98);
+      ctx.fillStyle = '#a00'; ctx.font = 'bold 15px Arial'; ctx.fillText('...және бетсіз кондуктор', 128, 132);
+      ctx.fillStyle = '#111'; ctx.font = '12px monospace'; ctx.fillText('memes came alive... and the', 128, 156); ctx.fillText('faceless conductor', 128, 172);
     }));
     M.paper.position.set(TX + 1.3, MY + 0.84, L(0, 5)); M.paper.rotation.set(0, -Math.PI / 2, 0); M.paper.rotateX(-0.25);
   };
@@ -764,7 +833,7 @@ export function extendDirector21(D) {
     const G = this.G, T = this.train;
     T.hasTicket = true; // (chapter 20 would remind you about a ticket: there is no ticket any more)
     const toast = G.ui.toast.bind(G.ui);
-    G.ui.toast = (text) => { if (!/RED LIGHT|ticket/.test(text)) toast(text); }; // the chapter 20 hints are about running and tickets: not any more
+    G.ui.toast = (text) => { if (!/RED LIGHT|ticket/.test(text)) toast(text); };
     try { yield* origIntro.call(this); } finally { G.ui.toast = toast; }
     T.doors.forEach((d) => (d.locked = false));
     G.ui.toast('The memes came alive in the long train. Walk up to them: each one plays once. Walk freely, forward or back.');
@@ -776,14 +845,12 @@ export function extendDirector21(D) {
     origEsc.call(this, dt);
     const G = this.G, T = this.train, C = T.cast, E = this.metro.esc, Pl = G.player;
     if (!C) return;
-    this.memeTick(dt); // the girl at the doors talks, too
-    // a blizzard outside the doors
+    this.memeTick(dt);
+    const pos = C.snow.geometry.attributes.position;
     if (!C.snow.visible) {
       C.snow.visible = true;
-      const pos = C.snow.geometry.attributes.position;
       for (let i = 0; i < 320; i++) pos.setXYZ(i, EX + rand(-1.3, 1.3), MY + ESC_RISE + rand(0, 2.6), ESC_END + rand(0.05, 1.4));
     }
-    const pos = C.snow.geometry.attributes.position;
     for (let i = 0; i < 320; i++) {
       let x = pos.getX(i) + dt * rand(2.5, 4.5), y = pos.getY(i) - dt * rand(0.3, 0.8);
       if (x > EX + 1.3) x = EX - 1.3; if (y < MY + ESC_RISE) y = MY + ESC_RISE + 2.6;
@@ -817,6 +884,6 @@ export function extendDirector21(D) {
   P.metroMapWin = function () {
     origWin.call(this);
     const M = this.metro;
-    $('end-stats').textContent = `Time ${fmt(this.G.time - (this.metroMapStart || 0))} · Wagons ${NW}/${NW} · Memes seen ${M.runMemes.size}/${MEMES.length}`;
+    $('end-stats').textContent = `Time ${fmt(this.G.time - (this.metroMapStart || 0))} · Wagons ${NW}/${NW} · Memes seen ${M.runMemes.size}/${MEMES.length} · Caught ${M.mistakes}×`;
   };
 }

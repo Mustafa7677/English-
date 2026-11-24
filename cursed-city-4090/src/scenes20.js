@@ -25,12 +25,12 @@ import { mat, basic, box, cyl, canvasTex, facadeBox, rand, pick } from './util.j
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const MY = -120, TX = 80;                    // floor height, the axis of the long train
-const WL = 16, GAP = 1.2, WP = WL + GAP, NW = 14;
+const WL = 16, GAP = 1.2, WP = WL + GAP, NW = 18;
 const zBack = (k) => -k * WP, zFront = (k) => -k * WP - WL;
 const L = (k, l) => -k * WP - l;             // world z of a point l metres into wagon k (k = 0: the last wagon)
 const CAB0 = zFront(NW - 1), CAB1 = CAB0 - 3.2; // the driver's cab, in front of the head wagon
-export const TRAIN = { MY, TX, WL, GAP, WP, NW, CAB0, CAB1 };
 const DOORS = [3.2, 8, 12.8];                // side doors (local z of their centres)
+export const TRAIN = { MY, TX, WL, GAP, WP, NW, CAB0, CAB1, DOORS };
 const WALLSEG = [[0, 2.55], [3.85, 7.35], [8.65, 12.15], [13.45, 16]];
 const SEATS = [[0.3, 2.45], [3.95, 7.25], [8.75, 12.05], [13.55, 15.7]];
 const VMAX = 16;                             // cruising speed, m/s
@@ -262,7 +262,7 @@ export function extendDirector20(D) {
     T.tail.add(box(3.0, 2.7, 8, darkM, 0, 0, -4.1, false));
     T.tail.position.set(TX, MY + 1.35, CAB1 - 48); T.tail.visible = false; g.add(T.tail);
     // the tunnel around the train
-    const tunM = mat('#22201c'), tl = 360, tz = -160;
+    const tunM = mat('#22201c'), tl = 440, tz = -200;
     g.add(box(0.4, 4.6, tl, tunM, TX - 3.3, MY + 1.1, tz, false), box(7.2, 0.2, tl, tunM, TX, MY - 1.15, tz, false), box(7.2, 0.2, tl, tunM, TX, MY + 3.5, tz, false));
     T.tunnelR = new THREE.Group(); g.add(T.tunnelR);
     T.tunnelR.add(box(0.4, 4.6, tl, tunM, TX + 3.3, MY + 1.1, tz, false));

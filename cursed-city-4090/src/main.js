@@ -41,10 +41,10 @@ const MAPS = {
   },
   metro: {
     kicker: 'MAP 2 · КАРТА 2', title: 'METRO 404',
-    tag: 'You fell asleep in the last wagon of a very long train under Almaty. The Kazakh memes came alive in it.',
-    rules: '<ol class="tc-list"><li>14 wagons. In every wagon, real Kazakh TikTok memes happen just like in their videos, only in the metro.</li>' +
-      '<li>Walk up to people: a meme starts when you come close, plays once, then they sit like normal passengers.</li>' +
-      '<li>Walk freely: every door opens, forward or back.</li>' +
+    tag: 'You fell asleep in the last wagon of a very long night train under Almaty. The Kazakh memes came alive in it... and so did something else.',
+    rules: '<ol class="tc-list"><li>18 wagons. In every wagon, a real Kazakh TikTok meme happens on its own stage, just like in its video.</li>' +
+      '<li>Walk up to people: a meme starts when you come close and plays once.</li>' +
+      '<li>Between the memes rides the <b class="r">faceless night conductor</b>. When the light turns RED: <b>RUN</b> to the next wagon.</li>' +
       '<li>At the end: the driver\'s cab, the exit, the escalator...</li></ol>' +
       `${controlsHTML(CONTROLS_METRO)}<p class="tc-note">📒 Every meme you see goes into the meme book.</p>`,
   },
