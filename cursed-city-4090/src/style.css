@@ -104,6 +104,9 @@ label.row input { margin-right: 8px; }
 #bossfill { height: 100%; width: 100%; background: linear-gradient(90deg, #b00, #ff4040); transition: width 0.2s; }
 #bossbar.hit .btrack { border-color: #fff; box-shadow: 0 0 12px #fff; }
 #minimap { position: fixed; right: 18px; bottom: 40px; width: 220px; height: 220px; z-index: 6; image-rendering: pixelated; pointer-events: none; }
+#pauseface { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); height: 92vh; width: auto; opacity: 0; pointer-events: none; transition: opacity 7s ease-in; filter: blur(1px); }
+#pauseface.show { opacity: 0.2; }
+#pause .panel { position: relative; z-index: 1; }
 @keyframes blink { 50% { opacity: 0.2; } }
 @keyframes jitter { 0% { transform: translate(0,0); } 25% { transform: translate(-3px,2px); } 50% { transform: translate(3px,-2px); } 75% { transform: translate(-2px,-3px); } 100% { transform: translate(0,0); } }
 @keyframes alarm { 0%,100% { opacity: 0.1; } 50% { opacity: 1; } }
