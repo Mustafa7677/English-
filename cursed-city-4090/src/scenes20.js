@@ -25,10 +25,11 @@ import { mat, basic, box, cyl, canvasTex, facadeBox, rand, pick } from './util.j
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const MY = -120, TX = 80;                    // floor height, the axis of the long train
-const WL = 16, GAP = 1.2, WP = WL + GAP, NW = 10;
+const WL = 16, GAP = 1.2, WP = WL + GAP, NW = 14;
 const zBack = (k) => -k * WP, zFront = (k) => -k * WP - WL;
 const L = (k, l) => -k * WP - l;             // world z of a point l metres into wagon k (k = 0: the last wagon)
 const CAB0 = zFront(NW - 1), CAB1 = CAB0 - 3.2; // the driver's cab, in front of the head wagon
+export const TRAIN = { MY, TX, WL, GAP, WP, NW, CAB0, CAB1 };
 const DOORS = [3.2, 8, 12.8];                // side doors (local z of their centres)
 const WALLSEG = [[0, 2.55], [3.85, 7.35], [8.65, 12.15], [13.45, 16]];
 const SEATS = [[0.3, 2.45], [3.95, 7.25], [8.75, 12.05], [13.55, 15.7]];
@@ -59,7 +60,7 @@ MEMES.splice(0, MEMES.length, ...[
 Object.assign(ACH, {
   m_ticket: ['Honest Passenger', 'Show your ticket to the controller'],
   m_noticket: ['Жүр, түсеміз', 'Run from the ticket controller'],
-  m_train: ['The Long Train', 'Walk through all 10 wagons to the driver'],
+  m_train: ['The Long Train', 'Walk through the whole train to the driver'],
   m_slipper: ['Тапочка', "Get hit by an apa's slipper"],
 });
 
@@ -119,7 +120,7 @@ function makeSwarm(n) { // one draw call for the whole swarm of cockroaches
   const m = new THREE.InstancedMesh(geo, mat('#3a1c0a'), n); m.frustumCulled = false;
   return m;
 }
-function addScarf(r, color) { // an apa's headscarf
+export function addScarf(r, color) { // an apa's headscarf
   const m = mat(color);
   r.head.add(box(0.37, 0.08, 0.37, m, 0, 0.38, -0.01, false), box(0.05, 0.3, 0.34, m, -0.185, 0.22, -0.02, false),
     box(0.05, 0.3, 0.34, m, 0.185, 0.22, -0.02, false), box(0.37, 0.36, 0.05, m, 0, 0.2, -0.185, false));
@@ -141,7 +142,7 @@ function makeAksakal() {
   const r = makeHumanoid({ skin: '#c89a78', shirt: '#2e2e2e', pants: '#222', outfit: 'jacket', hair: 'short', hairColor: '#e8e8e0', beard: true });
   addKalpak(r); return r;
 }
-function makeApa(shirt, scarf) {
+export function makeApa(shirt, scarf) {
   const r = makeHumanoid({ skin: '#d8b090', shirt, pants: '#3a2a3a', outfit: 'plain', hair: 'bun', hairColor: '#2a1a10', fat: 1.25 });
   addScarf(r, scarf); return r;
 }
@@ -261,7 +262,7 @@ export function extendDirector20(D) {
     T.tail.add(box(3.0, 2.7, 8, darkM, 0, 0, -4.1, false));
     T.tail.position.set(TX, MY + 1.35, CAB1 - 48); T.tail.visible = false; g.add(T.tail);
     // the tunnel around the train
-    const tunM = mat('#22201c'), tl = 280, tz = -120;
+    const tunM = mat('#22201c'), tl = 360, tz = -160;
     g.add(box(0.4, 4.6, tl, tunM, TX - 3.3, MY + 1.1, tz, false), box(7.2, 0.2, tl, tunM, TX, MY - 1.15, tz, false), box(7.2, 0.2, tl, tunM, TX, MY + 3.5, tz, false));
     T.tunnelR = new THREE.Group(); g.add(T.tunnelR);
     T.tunnelR.add(box(0.4, 4.6, tl, tunM, TX + 3.3, MY + 1.1, tz, false));

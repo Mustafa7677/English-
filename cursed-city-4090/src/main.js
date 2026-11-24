@@ -30,7 +30,7 @@ function saveSettings(s) { try { localStorage.setItem('cc4090-settings', JSON.st
 
 const CONTROLS_CITY = [['WASD', 'move'], ['MOUSE', 'look'], ['SHIFT', 'run'], ['SPACE', 'jump'], ['CTRL / C', 'crouch'], ['E', 'interact'],
   ['F', 'flashlight'], ['R / RMB', 'throw brick'], ['LEFT CLICK', 'kick'], ['M', 'map'], ['J', 'journal'], ['P', 'photo'], ['ESC', 'pause']];
-const CONTROLS_METRO = [['WASD', 'move'], ['MOUSE', 'look'], ['SHIFT', 'run'], ['E', 'take / skip intro'], ['F', 'flashlight'],
+const CONTROLS_METRO = [['WASD', 'move'], ['MOUSE', 'look'], ['SHIFT', 'run'], ['E', 'skip intro'], ['F', 'flashlight'],
   ['J', 'meme book'], ['ESC', 'pause']];
 const controlsHTML = (list) => `<div class="controls">${list.map(([k, v]) => `<div><b>${k}</b> ${v}</div>`).join('')}</div>`;
 const MAPS = {
@@ -41,12 +41,12 @@ const MAPS = {
   },
   metro: {
     kicker: 'MAP 2 · КАРТА 2', title: 'METRO 404',
-    tag: 'You fell asleep in the LAST wagon of a very long train under Almaty. Get to the driver.',
-    rules: '<ol class="tc-list"><li>Walk <b>forward</b> through the train, wagon by wagon: 10 wagons, a meme in every one.</li>' +
-      '<li>When the light turns <b class="r">RED</b>, the meme becomes a <b class="r">SCREAMER</b>: run to the next wagon!</li>' +
-      '<li>The door closes behind you. Caught → this wagon starts again.</li>' +
-      '<li>Take your ticket 🎫: the controller will ask. Then the driver\'s cab, the exit, the escalator...</li></ol>' +
-      `${controlsHTML(CONTROLS_METRO)}<p class="tc-note">📒 Every meme you meet goes into the meme book (24 in total).</p>`,
+    tag: 'You fell asleep in the last wagon of a very long train under Almaty. The Kazakh memes came alive in it.',
+    rules: '<ol class="tc-list"><li>14 wagons. In every wagon, real Kazakh TikTok memes happen just like in their videos, only in the metro.</li>' +
+      '<li>Walk up to people: a meme starts when you come close, plays once, then they sit like normal passengers.</li>' +
+      '<li>Walk freely: every door opens, forward or back.</li>' +
+      '<li>At the end: the driver\'s cab, the exit, the escalator...</li></ol>' +
+      `${controlsHTML(CONTROLS_METRO)}<p class="tc-note">📒 Every meme you see goes into the meme book.</p>`,
   },
 };
 
