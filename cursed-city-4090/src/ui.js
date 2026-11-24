@@ -142,6 +142,9 @@ export class UI {
     requestAnimationFrame(() => { w.style.transition = 'opacity 1.2s'; w.style.opacity = '0'; });
   }
 
+  /** True while a subtitle is on screen or waiting (background chatter should wait). */
+  busy() { return this.subTimer > 0.25 || this.subQueue.length > 0; }
+
   glitch(level) { // 0..1
     const g = this.el.glitch;
     g.style.opacity = String(level);

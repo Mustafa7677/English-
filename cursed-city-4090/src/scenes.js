@@ -22,6 +22,7 @@ import { extendDirector14 } from './scenes14.js';
 import { extendDirector15 } from './scenes15.js';
 import { extendDirector16 } from './scenes16.js';
 import { extendDirector17 } from './scenes17.js';
+import { extendDirector18 } from './scenes18.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 
@@ -97,7 +98,7 @@ class Cart {
       this.whipT -= dt;
       if (this.whipT <= 0) { this.whipT = rand(0.9, 1.6); if (ho.distToPlayer() < 40 || this.flying) G.audio.whip(ho.pos); }
       this.talkT -= dt;
-      if (this.talkT <= 0 && ho.distToPlayer() < 28 && !this.flying) {
+      if (this.talkT <= 0 && ho.distToPlayer() < 28 && !this.flying && this.D.ambientOk()) {
         this.talkT = rand(9, 14);
         const [a, b] = pick([
           ['FASTER, HUMAN! GIDDY UP!', '...yes... master...'],
@@ -542,7 +543,7 @@ export class Director {
       return;
     }
     m.chatCd = (m.chatCd ?? 30) - dt;
-    if (m.chatCd <= 0) { m.chatCd = rand(80, 130); n.say(pick(BUDDY_LINES), 3.5); }
+    if (m.chatCd <= 0 && this.ambientOk()) { m.chatCd = rand(80, 130); n.say(pick(BUDDY_LINES), 3.5); }
     m.tripCd = (m.tripCd ?? rand(120, 180)) - dt;
     m.braveCd = (m.braveCd ?? 0) - dt;
     let threat = null, best = 18;
@@ -1614,3 +1615,4 @@ extendDirector14(Director);
 extendDirector15(Director);
 extendDirector16(Director);
 extendDirector17(Director);
+extendDirector18(Director);

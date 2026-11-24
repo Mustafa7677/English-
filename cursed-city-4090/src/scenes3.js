@@ -292,7 +292,7 @@ export function extendDirector3(D) {
   P.updateRadio = function (dt) {
     const G = this.G;
     this.radioT -= dt;
-    if (this.radioT > 0 || this.horrorRunning || this.market.visited && this.inMarket(G.player.pos)) return;
+    if (this.radioT > 0 || this.horrorRunning || this.market.visited && this.inMarket(G.player.pos) || !this.ambientOk()) return;
     this.radioT = rand(150, 230);
     const pool = this.finale ? RADIO.finale : this.horror ? RADIO.horror : RADIO.calm;
     this.radioIdx = (this.radioIdx || 0) + 1;

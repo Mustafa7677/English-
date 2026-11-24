@@ -131,7 +131,7 @@ export function extendDirector13(D) {
     if (d < 14 && d > 2 && m.throwT <= 0 && !Pl.inVehicle) {
       m.throwT = rand(2.8, 4);
       n.anim = 'windup';
-      if (Math.random() < 0.4) n.say(pick(['OOK OOK! BANANA TIME!', 'Slip, human. SLIP!', 'Potassium attack!', 'OOK.']), 1.8);
+      if (Math.random() < 0.4 && this.ambientOk()) n.say(pick(['OOK OOK! BANANA TIME!', 'Slip, human. SLIP!', 'Potassium attack!', 'OOK.']), 1.8);
       const lead = Pl.vel.clone().multiplyScalar(0.9);
       const tgt = Pl.pos.clone().add(lead).add(V(rand(-0.6, 0.6), 0, rand(-0.6, 0.6)));
       const from = n.pos.clone().setY(1.6), T = 0.8;

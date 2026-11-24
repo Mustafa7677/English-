@@ -185,7 +185,7 @@ export function extendDirector(D) {
     this.updateLivingLamp(dt);
     this.updateShopCart(dt);
     this.updateIdle(dt);
-    if (!this.horror && !this.horrorRunning && !this.crashDone && G.time > this.crashAt && !Pl.inVehicle && !Pl.inBasement()) this.fakeCrash();
+    if (!this.horror && !this.horrorRunning && !this.crashDone && this.calm() && G.time > this.crashAt && !Pl.inVehicle && !Pl.inBasement()) this.fakeCrash();
     if (this.horror && !this.stopGo && !this.ended && G.time > this.stopGoNext) {
       if (!this.stopGoNext) this.stopGoNext = G.time + rand(20, 30);
       else this.task(this.stopGoTask);
@@ -196,7 +196,7 @@ export function extendDirector(D) {
   P.updatePhone = function (dt) {
     const G = this.G, ph = this.phone;
     const d = G.player.pos.distanceTo(ph.pos);
-    if (!ph.ringing && !ph.busy && G.time > this.phoneNext && d < 30 && !this.horrorRunning) { ph.ringing = true; ph.ringT = 0; }
+    if (!ph.ringing && !ph.busy && G.time > this.phoneNext && d < 30 && !this.horrorRunning && this.calm()) { ph.ringing = true; ph.ringT = 0; }
     if (ph.ringing) {
       ph.ringT -= dt;
       if (ph.ringT <= 0) {
@@ -251,7 +251,7 @@ export function extendDirector(D) {
   P.updateBus = function (dt) {
     const G = this.G, Pl = G.player, W = G.world;
     const stop = W.spots.bench;
-    if (!this.bus && !this.horrorRunning && !this.ended && G.time > this.busNext && Pl.pos.distanceTo(stop) < 45 && !Pl.inVehicle) this.spawnBus();
+    if (!this.bus && !this.horrorRunning && !this.ended && this.calm() && G.time > this.busNext && Pl.pos.distanceTo(stop) < 45 && !Pl.inVehicle) this.spawnBus();
     const b = this.bus;
     if (!b) return;
     b.t += dt;
@@ -522,7 +522,7 @@ export function extendDirector(D) {
     const G = this.G, Pl = G.player, I = this.idle;
     if (I.busy) return;
     const moving = Math.hypot(Pl.vel.x, Pl.vel.z) > 0.3 || G.input.mdx !== 0 || G.input.mdy !== 0;
-    if (moving || Pl.inVehicle || Pl.locked || this.horrorRunning || this.inKindergarten(Pl.pos)) { I.t = 0; return; }
+    if (moving || Pl.inVehicle || Pl.locked || this.horrorRunning || this.inKindergarten(Pl.pos) || !this.calm()) { I.t = 0; return; }
     I.t += dt;
     if (I.t > 25 && G.time > I.next) { I.busy = true; this.task(this.idleScareTask); }
   };

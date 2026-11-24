@@ -58,7 +58,7 @@ export function extendDirector9(D) {
   // ---- the random scheduler is replaced by fixed places
   P.runScheduler = function () {
     const G = this.G, Pl = G.player;
-    if (G.time < 35 || this.horror || this.horrorRunning || Pl.inVehicle || Pl.inBasement() || Pl.hiding || this.inKindergarten(Pl.pos)) return;
+    if (G.time < 35 || !this.calm() || this.horror || this.horrorRunning || Pl.inVehicle || Pl.inBasement() || Pl.hiding || this.inKindergarten(Pl.pos)) return;
     if (G.time < (this.spotGap || 0)) return;
     for (const s of this.gagSpots) {
       if (G.time < s.next) continue;
@@ -68,7 +68,7 @@ export function extendDirector9(D) {
       let ok = false;
       try { ok = this['gag_' + s.name](); } finally { this.anchor = null; }
       s.next = G.time + (ok ? rand(300, 420) : 20);
-      if (ok) { this.eventsSeen++; this.spotGap = G.time + 20; this.cullNPCs(); }
+      if (ok) { this.eventsSeen++; this.spotGap = G.time + 20; this.claim(15); this.cullNPCs(); }
       return;
     }
   };
@@ -79,7 +79,7 @@ export function extendDirector9(D) {
     const G = this.G, Pl = G.player;
     this.fakeNext = 1e9;
     for (const s of this.fakeSpots) {
-      if (G.time < s.next || Math.hypot(s.pos.x - Pl.pos.x, s.pos.z - Pl.pos.z) > 9) continue;
+      if (G.time < s.next || !this.calm() || Math.hypot(s.pos.x - Pl.pos.x, s.pos.z - Pl.pos.z) > 9) continue;
       s.next = G.time + 420;
       this._forcedKind = s.kind; this.fakeNext = 0;
       break;
@@ -174,7 +174,7 @@ export function extendDirector9(D) {
     const d = Math.hypot(tx - n.pos.x, tz - n.pos.z);
     if (d > 0.4) n.steer(tx, tz, Math.min(3.5, 1.2 + d), dt, 'walk'); else { n.anim = 'idle'; n.faceNow(k.pos.x, k.pos.z); }
     // talk when the player is close
-    if (n.distToPlayer() < 12 && G.time - (this.c9.dogT || -99) > 14) {
+    if (n.distToPlayer() < 12 && G.time - (this.c9.dogT || -99) > 14 && this.ambientOk()) {
       this.c9.dogT = G.time;
       const [a, b] = pick([
         ["Who's a good boy? YOU are, Kevin.", '...woof.'],
@@ -210,7 +210,7 @@ export function extendDirector9(D) {
       if (G.fx && !man.removed) G.fx.emit(man.pos.clone().add(man.forward().multiplyScalar(0.5)).setY(1.3), 8, 'crumb');
       if (d < 20 && Math.random() < 0.4) G.audio.beep(pg.group.position, rand(380, 460), 0.18, 0.06, 'sine'); // coo
     }
-    if (d < 8 && G.time - (this.c9.pigeonT || -99) > 25 && !man.rd) {
+    if (d < 8 && G.time - (this.c9.pigeonT || -99) > 25 && !man.rd && this.ambientOk()) {
       this.c9.pigeonT = G.time;
       const [a, b] = pick([
         ['Coo. Eat, human. Grow strong.', "...don't judge me. The bread here is incredible."],
@@ -228,7 +228,7 @@ export function extendDirector9(D) {
     if (cat.removed || emp.removed) return;
     if (cat.distToPlayer() > 15 || cat.rd || emp.rd) return;
     this.c9.catT -= dt;
-    if (this.c9.catT > 0) return;
+    if (this.c9.catT > 0 || !this.ambientOk()) return;
     this.c9.catT = 20;
     const plea = pick(['Sir, the quarterly report is... a little bit late.', 'But sir, I have a family! And a fish!', 'Please, sir. One more chance. I will catch the red dot.']);
     emp.say(plea, 3);

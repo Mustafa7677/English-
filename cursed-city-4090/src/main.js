@@ -130,6 +130,7 @@ G.gameOver = () => {
   if (G.state !== 'play') return;
   G.state = 'dead';
   G.ui.screamer('horse', 1.2);
+  if (G.map === 'metro') document.querySelector('#gameover h2').textContent = 'YOU DIED IN METRO 404';
   G.audio.sting(1);
   setTimeout(() => {
     G.input.unlock();

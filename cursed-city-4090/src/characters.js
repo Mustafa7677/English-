@@ -357,6 +357,10 @@ export function pose(rig, mode, dt, t, speed = 0) {
       T.alz = 2.3 + Math.sin(t * 6) * 0.15; T.arz = -2.3 - Math.sin(t * 6) * 0.15; T.alx = -0.4; T.arx = -0.4; T.sx = -0.12; T.hx = -0.15; T.by = Math.abs(Math.sin(t * 3)) * 0.03; break;
     case 'press':
       T.llx = -1.5; T.lrx = -1.5; T.by = -0.45; T.alx = -2.75 + Math.sin(t * 2) * 0.1; T.arx = -2.75 + Math.sin(t * 2) * 0.1; T.sx = -0.2; break;
+    case 'mew':
+      T.arx = -2.55; T.arz = 0.42; T.alx = Math.sin(t * 0.8) > 0.6 ? -2.2 : -0.2; T.alz = Math.sin(t * 0.8) > 0.6 ? -0.3 : 0.1; T.hx = -0.25; break;
+    case 'stream':
+      T.arx = -2.0; T.arz = 0.15; T.alx = -0.3 + Math.sin(t * 3) * 0.3; T.by = Math.abs(Math.sin(t * 6)) * 0.03; T.hy = Math.sin(t * 2) * 0.2; break;
     case 'clap': {
       const c = Math.max(0, Math.sin(t * 12.6));
       T.alx = -1.35; T.arx = -1.35; T.alz = 0.25 - c * 0.45; T.arz = -0.25 + c * 0.45; T.hx = -0.1; break;

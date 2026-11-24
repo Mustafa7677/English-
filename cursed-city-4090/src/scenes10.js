@@ -35,6 +35,7 @@ const PAL = {
   caretaker: ['#d9d6c8', '#6a665c', null], crawler: ['#a3ad97', '#36402f', null], butcher: ['#c9977a', '#4a261a', null],
   poster: ['#ece9e0', '#7c7870', '#050505'], pale: ['#e4e1d8', '#6e6a60', '#0a0a0a'], mannequin: ['#d8c4a2', '#6e5e44', null],
   dancer: ['#c99572', '#4a2e1a', '#1a1410'],
+  horse: ['#9a6a3e', '#3a200e', '#140a04'], leopard: ['#e6d8a8', '#6a5a30', null], fruit: ['#e83848', '#5a0a14', null],
 };
 
 /** Paint a horror face (transparent background). variant 1 = glitched/stretched frame. */
@@ -178,7 +179,7 @@ export function extendDirector10(D) {
     const G = this.G, W = G.world;
     this.c10 = { prevBasement: false, mapT: 0, catAt: 0 };
     // paint the faces ahead of time so the first scare does not hitch
-    setTimeout(() => ['pale', 'crawler', 'caretaker', 'mannequin', 'butcher', 'poster', 'dancer'].forEach(faceTextures), 4000);
+    setTimeout(() => ['pale', 'crawler', 'caretaker', 'mannequin', 'butcher', 'poster', 'dancer', 'horse', 'leopard', 'fruit'].forEach(faceTextures), 4000);
     // 4. the fourth washing machine
     const w4 = W.washers[3];
     W.addInteract({

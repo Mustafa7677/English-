@@ -267,7 +267,7 @@ export function extendDirector14(D) {
     const G = this.G, Pl = G.player, c = this.c14, lvl = G.settings.scare || 'normal';
     if (lvl === 'mild') return;
     c.subT -= dt;
-    if (c.subT > 0 || G.state !== 'play' || Pl.inVehicle) return;
+    if (c.subT > 0 || G.state !== 'play' || Pl.inVehicle || !this.calm()) return;
     const inDark = DARK_SPOTS.some(([x, z]) => Math.hypot(Pl.pos.x - x, Pl.pos.z - z) < 14) || (this.zone && this.zone.active) || Pl.inBasement();
     if (!inDark || Math.random() > dt * 0.5) return;
     c.subT = lvl === 'extreme' ? rand(30, 50) : rand(70, 110);

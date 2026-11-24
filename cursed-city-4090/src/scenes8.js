@@ -252,7 +252,7 @@ export function extendDirector8(D) {
     const flash = (k) => { this.lightning.intensity = 5 * k; };
     flash(1); setTimeout(() => flash(0.7), 160);
     // sometimes a giant figure stands in the flash, far away, looking at you
-    this.giantShown = Math.random() < 0.4;
+    this.giantShown = this.calm() && Math.random() < 0.4;
     if (this.giantShown) {
       const f = this.playerFwd(), side = V(f.z, 0, -f.x), dist = rand(55, 80);
       const p = Pl.pos.clone().addScaledVector(f, dist).addScaledVector(side, rand(-15, 15));

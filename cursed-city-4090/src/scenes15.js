@@ -244,7 +244,7 @@ export function extendDirector15(D) {
     yield 0.2;
     G.ui.fade(0, 1);
     G.ui.big('METRO 404', 3, 'clock');
-    G.ui.toast('Read the RULES on the wall. Nothing strange: go forward. Anything strange: turn back.');
+    G.ui.toast('Read the RULES: no meme → walk forward. A MEME appears → it turns into a SCREAMER. Turn back in time!');
     M.hud.classList.remove('hidden');
   };
 
@@ -379,12 +379,7 @@ export function extendDirector15(D) {
         M.mgrMusic.setPos(mm.position);
         if (d < 1.1) {
           M.mgrState = 'done'; mm.visible = false; M.mgrMusic.stop(); M.mgrMusic = null;
-          this.task(function* () {
-            yield* this.lunge('caretaker', 20);
-            M.mistakes++; M.level = START_LEVEL;
-            G.ui.big('CAUGHT. BACK TO RAIYMBEK BATYR.', 2.5, 'red');
-            this.metroNewLoop(); Pl.pos.set(0, MY, 3); Pl.yaw = 0;
-          });
+          this.metroCaught('caretaker', 15, 'THE MANAGER: YOU ARE FIRED.');
         }
       }
     }

@@ -258,7 +258,7 @@ export function extendDirector16(D) {
     const cam = G.camera, dz = (z) => Pl.pos.z - z;
     const caught = (msg, kind, dmg) => {
       if (T.done) return; T.done = true;
-      this.task(function* () { yield* this.lunge(kind, dmg); if (msg) G.ui.big(msg, 2.2, 'red'); });
+      this.metroCaught(kind, dmg, msg);
     };
     switch (a) {
       case 'dubara':
@@ -275,7 +275,7 @@ export function extendDirector16(D) {
           if (T.t < 0.45) r.position.set(0.5 - 0.55 * k, -0.32 + 0.3 * k, -0.5);
           else if (T.t > 1.1) r.position.x -= dt * 1.6;
           r.rotation.z = Math.sin(T.t * 40) * 0.15 + (T.t > 1.1 ? 1.2 : 0.6);
-          if (T.t > 1.8) { cam.remove(r); T.state = 'done'; }
+          if (T.t > 1.8) { cam.remove(r); T.state = 'done'; this.metroCaught(null, 4, 'ТАРАҚАНДАР ЖЕҢДІ. (the roaches won)'); }
         }
         break;
       case 'gta6':
@@ -285,6 +285,7 @@ export function extendDirector16(D) {
           G.audio.crunch(M.disc.position, 0.7);
           G.ui.say('...НЕЕЕЕТ! ОНЫ ОН ЖЫЛ КҮТТІМ!', '(a voice from nowhere)', 3, '#f9c');
           this.achieve('m_gta');
+          { const loop = M.loops; this.after(2.6, () => { if (M.active && M.loops === loop && !M.busy) { G.ui.big('...ОН ЖЫЛ КҮТТІМ...', 1.6, 'red'); this.metroCaught('pale', 8, 'GTA 6 FAN WAS WAITING TOO.'); } }); }
         }
         break;
       case 'karate': {
@@ -301,8 +302,9 @@ export function extendDirector16(D) {
           if (k >= 1) {
             T.state = 'done'; r.root.visible = false;
             G.ui.crack(3); G.audio.thud(null, 1); G.audio.crunch(null, 0.7); G.audio.sting(0.5);
-            Pl.shake = 1; Pl.damage(10, null, 'fear'); Pl.scare(0.7); G.ui.hurt(10);
+            Pl.shake = 1; Pl.scare(0.7); G.ui.hurt(10);
             this.achieve('m_karate');
+            this.metroCaught(null, 10, 'ХИИИЯ! НОКАУТ. (knocked out)');
           }
         }
         break;
@@ -331,7 +333,7 @@ export function extendDirector16(D) {
         if (T.state === 'wait' && Math.hypot(Pl.pos.x - r.root.position.x, dz(r.root.position.z)) < 4) {
           T.state = 'done'; r.root.visible = false;
           G.ui.big('ОЙЛАШЫ!!!', 2, 'red'); G.audio.speak('Ойлашы!', { pitch: 0.4, rate: 1 });
-          this.task(function* () { yield* this.lunge('pale', 8); this.achieve('m_oylashy'); });
+          this.achieve('m_oylashy'); this.metroCaught('pale', 8, 'ОЙЛАШЫ!!!');
         }
         break;
       }
@@ -352,7 +354,7 @@ export function extendDirector16(D) {
           r.root.position.x += (Pl.pos.x - r.root.position.x) / d * 6.4 * dt; r.root.position.z += (Pl.pos.z - r.root.position.z) / d * 6.4 * dt;
           r.root.rotation.y = Math.atan2(Pl.pos.x - r.root.position.x, Pl.pos.z - r.root.position.z);
           r.phase += dt * 14; pose(r, 'run', dt, G.time, 6.4);
-          if (d < 1.1) { T.state = 'done'; Pl.damage(15, r.root.position, 'fear'); Pl.shake = 0.8; G.ui.big('ҰСТАДЫМ! ЕНДІ РЭП ТЫҢДА!', 2.2, 'red'); G.audio.bigScream(0.6); }
+          if (d < 1.1) { T.state = 'done'; if (M.beat) { M.beat.stop(); M.beat = null; } this.metroCaught('leopard', 12, 'ҰСТАДЫМ! ЕНДІ РЭП ТЫҢДА!'); }
         }
         break;
       }
@@ -369,7 +371,7 @@ export function extendDirector16(D) {
           r.root.position.y = MY + Math.abs(Math.sin(T.hop * Math.PI)) * 1.4;
           pose(r, 'fight', dt, G.time, 0);
           if (Math.sin(T.hop * Math.PI) * Math.sin((T.hop - dt * 2.6) * Math.PI) < 0) { G.audio.thud(r.root.position, 1); Pl.shake = Math.max(Pl.shake, 0.35); }
-          if (d < 1.6) { T.state = 'done'; Pl.damage(15, r.root.position, 'fear'); Pl.knock.set(0, 0, 14); Pl.vel.y = 6; G.audio.thud(null, 1); G.audio.bigScream(0.5); G.ui.big('*KANGAROO PUNCH*', 1.8, 'red'); }
+          if (d < 1.6) { T.state = 'done'; Pl.knock.set(0, 0, 10); G.audio.thud(null, 1); this.metroCaught('horse', 12, '*KANGAROO PUNCH*'); }
         }
         break;
       }
@@ -384,7 +386,7 @@ export function extendDirector16(D) {
             f.position.y = MY + Math.abs(Math.sin(G.time * 18 + i)) * 0.15;
             f.userData.legs.forEach((l, k) => (l.rotation.x = Math.sin(G.time * 24 + k * Math.PI) * 0.9));
             if (Math.random() < dt * 1.5) G.audio.laugh(f.position, 0.3, 2.2);
-            if (d < 0.8) { f.visible = false; Pl.damage(7, f.position, 'fear'); G.ui.hurt(12); G.audio.crunch(null, 0.3); G.ui.say('*CHOMP*', i ? 'Fruti' : 'Bluti', 1.4, '#f6a'); this.achieve('m_bluti'); }
+            if (d < 0.8) { f.visible = false; G.audio.crunch(null, 0.3); G.ui.say('*CHOMP*', i ? 'Fruti' : 'Bluti', 1.4, '#f6a'); this.achieve('m_bluti'); this.metroCaught('fruit', 8, 'BLUTI! FRUTI! CHOMP!'); }
           }
         });
         if (T.go && !T.said) { T.said = true; G.ui.say('BLUTI! FRUTI! BLUTI! FRUTI!', 'Bluti Fruti', 2.5, '#f6a'); }

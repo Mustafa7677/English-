@@ -271,7 +271,7 @@ export function extendDirector4(D) {
   P.updateCroco = function (dt) {
     const G = this.G, Pl = G.player;
     this.crocoNext -= dt;
-    if (!this.croco && this.crocoNext <= 0 && !this.horrorRunning && !Pl.inVehicle && !Pl.inBasement() && Math.abs(Pl.pos.z) < 35 && Math.abs(Pl.pos.x) < 90) {
+    if (!this.croco && this.crocoNext <= 0 && this.calm() && !this.horrorRunning && !Pl.inVehicle && !Pl.inBasement() && Math.abs(Pl.pos.z) < 35 && Math.abs(Pl.pos.x) < 90) {
       this.crocoNext = this.finale ? rand(60, 90) : rand(220, 320);
       const m = makeCrocoplane();
       const dir = V(1, 0, 0); // fixed flight path: west -> east along the main road
@@ -315,7 +315,7 @@ export function extendDirector4(D) {
   // ---------------------------------------------------------------- COFFIN DANCE
   P.updateCoffin = function (dt) {
     const G = this.G, Pl = G.player, W = G.world;
-    if (!this.coffin && Pl.health < 35 && G.time > this.coffinNext && !Pl.inVehicle && !Pl.inBasement() && !Pl.hiding) {
+    if (!this.coffin && Pl.health < 35 && this.calm() && G.time > this.coffinNext && !Pl.inVehicle && !Pl.inBasement() && !Pl.hiding) {
       const s = this.findSpot(16, 24, true, 1.0) || this.findSpot(16, 24);
       if (!s) return;
       const m = makeCoffinCrew(); m.group.position.copy(s); G.scene.add(m.group);
@@ -384,7 +384,7 @@ export function extendDirector4(D) {
   // ---------------------------------------------------------------- SCREAMER: face in the flashlight
   P.maybeFlashFace = function () {
     const G = this.G, Pl = G.player;
-    if (G.time < 90 || G.time - (this.lastFlashFace || -999) < 150 || Pl.hiding || Pl.inVehicle) return;
+    if (G.time < 90 || !this.calm() || G.time - (this.lastFlashFace || -999) < 150 || Pl.hiding || Pl.inVehicle) return;
     if (G.lighting.nearestLitDist(Pl.pos) < 10 || Math.random() > 0.2) return;
     this.lastFlashFace = G.time;
     const f = this.playerFwd().clone();
@@ -402,7 +402,7 @@ export function extendDirector4(D) {
     L.sprint = sprinting ? L.sprint + dt : Math.max(0, L.sprint - dt * 2);
     L.yaws.push({ t: G.time, y: Pl.yaw });
     while (L.yaws.length && G.time - L.yaws[0].t > 0.5) L.yaws.shift();
-    if (L.sprint < 3.5 || G.time < L.next || Pl.inVehicle || Pl.hiding || this.horrorRunning) return;
+    if (L.sprint < 3.5 || G.time < L.next || Pl.inVehicle || Pl.hiding || this.horrorRunning || !this.calm()) return;
     const turned = Math.abs(angleWrap(Pl.yaw - L.yaws[0].y)) > 2.3;
     if (!turned) return;
     L.next = G.time + 200;
