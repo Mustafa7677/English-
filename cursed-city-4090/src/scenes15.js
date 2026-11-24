@@ -14,13 +14,13 @@ import { faceTextures } from './scenes10.js';
 import { mat, basic, box, cyl, facadeBox, canvasTex, rand, pick } from './util.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
-const MY = -120, H = 3.2, START_LEVEL = 6;
+const MY = -120, H = 3.2, START_LEVEL = 5;
 const ENTRANCE = V(-12, 0, -9.5); // metro entrance in the city (by the starting crossroads)
 const ANOMALIES = ['faceless', 'backwards', 'stare', 'horse', 'poster', 'faces', 'red', 'door', 'crew67', 'ceiling',
   'bananas', 'sign', 'missing', 'manager', 'buddy', 'cart', 'cctv', 'steps'];
 
 Object.assign(ACH, {
-  metro: ['Surface', 'Escape METRO 4090'],
+  metro: ['Surface', 'Escape METRO 404'],
   metroWrong: ['Missed It', 'Make a wrong choice in the metro'],
   metroPerfect: ['Eagle Eye', 'Escape the metro without a single mistake'],
 });
@@ -127,7 +127,7 @@ export function extendDirector15(D) {
     const rules = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.3), basic('#fff', { map: canvasTex(200, 172, (ctx) => {
       ctx.fillStyle = '#f2eedc'; ctx.fillRect(0, 0, 200, 172); ctx.fillStyle = '#a00'; ctx.font = 'bold 18px monospace'; ctx.fillText('RULES', 70, 24);
       ctx.fillStyle = '#111'; ctx.font = '11px monospace';
-      ['1. If nothing is strange,', '   keep walking forward.', '2. If ANYTHING is strange,', '   turn back immediately.', '3. A wrong choice sends', '   you back to B6.', '4. Reach B0. Do not run', '   from the Manager. Turn.'].forEach((l, i) => ctx.fillText(l, 10, 48 + i * 15));
+      ['1. If nothing is strange,', '   keep walking forward.', '2. If ANYTHING is strange,', '   turn back immediately.', '3. A wrong choice sends', '   you back to the 1st station.', '4. Reach the surface. Turn', '   back from ANY monster.'].forEach((l, i) => ctx.fillText(l, 10, 48 + i * 15));
     }) }));
     rules.position.set(2.46, MY + 1.6, 3); rules.rotation.y = -Math.PI / 2; root.add(rules);
     // stairs to the surface (only on B0)
@@ -155,12 +155,12 @@ export function extendDirector15(D) {
     ent.add(box(3.2, 0.9, 0.2, mat('#3a3d40'), 0, 0.45, -1.6), box(0.2, 0.9, 3.2, mat('#3a3d40'), -1.6, 0.45, 0), box(0.2, 0.9, 3.2, mat('#3a3d40'), 1.6, 0.45, 0));
     ent.add(box(3, 0.05, 3, basic('#050505'), 0, 0.06, 0, false));
     for (let i = 0; i < 5; i++) ent.add(box(2.8, 0.05, 0.4, mat('#555'), 0, 0.04 - i * 0.002, -1 + i * 0.5, false));
-    const msign = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.6), basic('#fff', { map: posterTex('METRO 4090', '↓ PLATFORMS ↓', '#0a2a5a', '#ffcc00') }));
+    const msign = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.6), basic('#fff', { map: posterTex('METRO 404', '↓ PLATFORMS ↓', '#0a2a5a', '#ffcc00') }));
     msign.position.set(0, 2.6, 1.7); msign.rotation.y = Math.PI; ent.add(msign);
     ent.add(cyl(0.05, 0.05, 2.6, 6, mat('#555'), 0.7, 1.3, 1.7), cyl(0.05, 0.05, 2.6, 6, mat('#555'), -0.7, 1.3, 1.7));
     G.scene.add(ent);
     W.addCollider(ENTRANCE.x - 1.7, ENTRANCE.x + 1.7, ENTRANCE.z - 1.7, ENTRANCE.z - 1.5, -1, 1);
-    W.addInteract({ pos: ENTRANCE.clone().add(V(0, 1, 1)), r: 3.8, label: 'Go down into METRO 4090', enabled: () => !M.active && !this.horrorRunning && !G.player.inVehicle, act: () => this.task(this.metroEnterTask) });
+    W.addInteract({ pos: ENTRANCE.clone().add(V(0, 1, 1)), r: 3.8, label: 'Go down into METRO 404', enabled: () => !M.active && !this.horrorRunning && !G.player.inVehicle, act: () => this.task(this.metroEnterTask) });
     W.addInteract({ pos: V(-2.4, MY + 1.4, 3), r: 2.2, label: 'Emergency stairs: leave the metro', enabled: () => M.active, act: () => this.task(this.metroLeaveTask) });
     M.hud = document.getElementById('metrohud');
   };
@@ -245,7 +245,7 @@ export function extendDirector15(D) {
     if (this.buddy && !this.buddy.removed) { this.buddy.pos.set(-1, MY, 4.5); }
     yield 0.2;
     G.ui.fade(0, 1);
-    G.ui.big('METRO 4090 — B6', 3, 'clock');
+    G.ui.big('METRO 404', 3, 'clock');
     G.ui.toast('Read the RULES on the wall. Nothing strange: go forward. Anything strange: turn back.');
     M.hud.classList.remove('hidden');
   };
@@ -286,14 +286,14 @@ export function extendDirector15(D) {
       Pl.pos.set(ENTRANCE.x, 0, ENTRANCE.z + 3); Pl.yaw = Math.PI;
       M.done = true; M.busy = false;
       yield 0.2; G.ui.fade(0, 1.5);
-      G.ui.big('YOU ESCAPED METRO 4090', 4, 'green'); G.audio.choir(3);
+      G.ui.big('YOU ESCAPED METRO 404', 4, 'green'); G.audio.choir(3);
       this.achieve('metro'); if (!M.mistakes) this.achieve('metroPerfect');
       if (this.addAura) this.addAura(2000, 'escaped the metro');
       return;
     }
-    if (correct) M.level = Math.max(0, M.level - 1);
+    if (correct) { M.level = Math.max(0, M.level - 1); if (this.metroRide) yield* this.metroRide(M.level); }
     else {
-      M.mistakes++; M.level = START_LEVEL; this.achieve('metroWrong');
+      M.mistakes++; M.level = START_LEVEL; M.freshStart = true; this.achieve('metroWrong');
       G.audio.sting(0.4);
       if (this.addAura) this.addAura(-150, 'missed an anomaly');
     }
@@ -301,7 +301,7 @@ export function extendDirector15(D) {
     Pl.pos.set(0, MY, 3); Pl.vel.set(0, 0, 0); Pl.yaw = 0;
     yield 0.15;
     G.ui.fade(0, 0.6);
-    G.ui.big(correct ? (M.level === 0 ? 'B0 — THE SURFACE IS CLOSE' : `B${M.level}`) : `WRONG. BACK TO B${START_LEVEL}.`, 2.2, correct ? 'clock' : 'red');
+    G.ui.big(correct ? (this.stationTitle ? this.stationTitle(M.level) : `B${M.level}`) : 'WRONG. BACK TO RAIYMBEK BATYR.', 2.6, correct ? 'clock' : 'red');
     M.busy = false;
   };
 
@@ -376,7 +376,7 @@ export function extendDirector15(D) {
           this.task(function* () {
             yield* this.lunge('caretaker', 20);
             M.mistakes++; M.level = START_LEVEL;
-            G.ui.big(`CAUGHT. BACK TO B${START_LEVEL}.`, 2.5, 'red');
+            G.ui.big('CAUGHT. BACK TO RAIYMBEK BATYR.', 2.5, 'red');
             this.metroNewLoop(); Pl.pos.set(0, MY, 3); Pl.yaw = 0;
           });
         }

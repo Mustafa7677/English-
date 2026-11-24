@@ -76,6 +76,35 @@ export class UI {
     setTimeout(() => d.remove(), 5500);
   }
 
+  /** Cracked-screen overlay (something kicked your monitor). */
+  crack(dur = 3) {
+    const c = document.getElementById('crack');
+    c.width = window.innerWidth; c.height = window.innerHeight;
+    const ctx = c.getContext('2d'), cx = c.width * (0.4 + Math.random() * 0.2), cy = c.height * (0.4 + Math.random() * 0.2);
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 2;
+    for (let i = 0; i < 18; i++) {
+      let x = cx, y = cy; const a = (i / 18) * Math.PI * 2 + Math.random() * 0.3;
+      ctx.beginPath(); ctx.moveTo(x, y);
+      for (let k = 0; k < 8; k++) { x += Math.cos(a + (Math.random() - 0.5) * 0.6) * (40 + Math.random() * 90); y += Math.sin(a + (Math.random() - 0.5) * 0.6) * (40 + Math.random() * 90); ctx.lineTo(x, y); }
+      ctx.stroke();
+    }
+    for (let r = 30; r < 160; r += 45) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.stroke(); }
+    c.style.transition = 'none'; c.style.opacity = '1';
+    clearTimeout(this._crackT);
+    this._crackT = setTimeout(() => { c.style.transition = 'opacity 1.2s'; c.style.opacity = '0'; }, dur * 1000);
+  }
+
+  /** Phone notification card (top of the screen). */
+  phone(app, text, dur = 4) {
+    const d = document.createElement('div');
+    d.className = 'phonenote';
+    d.innerHTML = `<div class="pn-app">🔔 ${escapeHtml(app)} · now</div><div class="pn-text">${escapeHtml(text)}</div>`;
+    document.getElementById('phones').appendChild(d);
+    setTimeout(() => d.classList.add('out'), dur * 1000);
+    setTimeout(() => d.remove(), dur * 1000 + 800);
+  }
+
   /** Fake "program not responding" dialog. stage 0 = hide, 1 = frozen, 2 = just kidding. */
   crashDialog(stage) {
     const c = document.getElementById('crash');

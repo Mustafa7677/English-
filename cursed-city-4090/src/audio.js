@@ -348,6 +348,13 @@ export class GameAudio {
     n.connect(hp).connect(g).connect(this.master); n.start(t, 0, 0.7);
   }
 
+  clap(vol = 0.35) {
+    if (!this.ctx) return;
+    const t = this.t, n = this._noiseSrc(); const bp = this.ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = rand(1100, 1600); bp.Q.value = 1.2;
+    const g = this.ctx.createGain(); this._env(g, t, 0.001, vol, 0.07);
+    n.connect(bp).connect(g).connect(this.sfx); n.start(t, rand(0, 1.5), 0.1);
+  }
+
   /** Ringing ears after a loud scare. */
   tinnitus(dur = 3) {
     if (!this.ctx) return;
@@ -500,6 +507,22 @@ export class GameAudio {
         }
         i++;
       }, 190);
+    } else if (kind === 'hiphop') {
+      let i = 0;
+      const bass = [55, 55, 0, 65.4, 55, 0, 49, 0];
+      interval = setInterval(() => {
+        const t = ctx.currentTime;
+        if (i % 4 === 0) { const k = ctx.createOscillator(); k.frequency.setValueAtTime(130, t); k.frequency.exponentialRampToValueAtTime(40, t + 0.15); const g = ctx.createGain(); this._env(g, t, 0.002, 0.8, 0.2); k.connect(g).connect(gain); k.start(t); k.stop(t + 0.25); }
+        if (i % 8 === 4) { const n = this._noiseSrc(); const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1800; const g = ctx.createGain(); this._env(g, t, 0.002, 0.5, 0.12); n.connect(bp).connect(g).connect(gain); n.start(t, 0, 0.15); }
+        if (i % 2 === 1) { const n = this._noiseSrc(); const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 7000; const g = ctx.createGain(); this._env(g, t, 0.001, 0.15, 0.03); n.connect(hp).connect(g).connect(gain); n.start(t, 0, 0.05); }
+        const f = bass[i % 8]; if (f) { const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 300; const g = ctx.createGain(); this._env(g, t, 0.005, 0.35, 0.18); o.connect(lp).connect(g).connect(gain); o.start(t); o.stop(t + 0.22); }
+        i++;
+      }, 150);
+    } else if (kind === 'train') {
+      const n = this._noiseSrc(true); const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 220;
+      const g = ctx.createGain(); g.gain.value = 0.5; n.connect(lp).connect(g).connect(gain); n.start(); nodes.push(n);
+      let i = 0;
+      interval = setInterval(() => { this.thud(null, i % 2 ? 0.15 : 0.2); i++; }, 450);
     } else if (kind === 'buzz') {
       const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 120;
       const o2 = ctx.createOscillator(); o2.type = 'square'; o2.frequency.value = 240.4;

@@ -193,6 +193,25 @@ function buildAnimalHead(B, skin, kind) {
     B.add(cm('#5a3010'), 0.07, 0.24, 0.12, -0.18, 0.12, 0, 0, 0, 0.25); B.add(cm('#5a3010'), 0.07, 0.24, 0.12, 0.18, 0.12, 0, 0, 0, -0.25); // floppy ears
     for (const s of [-1, 1]) { B.add(white, 0.06, 0.05, 0.012, s * 0.08, 0.24, 0.163); B.add(dark, 0.03, 0.045, 0.014, s * 0.08, 0.24, 0.168); }
     B.add(pink, 0.06, 0.03, 0.08, 0, 0.02, 0.3);                // tongue
+  } else if (kind === 'leopard') {
+    B.add(skin, 0.34, 0.3, 0.3, 0, 0.17, 0);
+    B.add(skin, 0.07, 0.09, 0.06, -0.12, 0.35, 0); B.add(skin, 0.07, 0.09, 0.06, 0.12, 0.35, 0);
+    B.add(cm('#f4f0e4'), 0.18, 0.11, 0.07, 0, 0.09, 0.15);
+    B.add(dark, 0.06, 0.04, 0.02, 0, 0.14, 0.19);
+    for (const [x, y] of [[-0.1, 0.3], [0.08, 0.32], [-0.13, 0.12], [0.13, 0.16], [0, 0.29], [-0.15, 0.22], [0.15, 0.25]]) B.add(cm('#3a3020'), 0.04, 0.04, 0.012, x, y, 0.153);
+    for (const s of [-1, 1]) { B.add(cm('#b8e0f0'), 0.07, 0.05, 0.012, s * 0.08, 0.22, 0.152); B.add(dark, 0.02, 0.045, 0.014, s * 0.08, 0.22, 0.158); }
+  } else if (kind === 'kangaroo') {
+    B.add(skin, 0.28, 0.3, 0.3, 0, 0.17, -0.02);
+    B.add(skin, 0.18, 0.18, 0.3, 0, 0.1, 0.22);                   // long snout
+    B.add(dark, 0.08, 0.05, 0.04, 0, 0.15, 0.37);
+    B.add(skin, 0.07, 0.3, 0.05, -0.1, 0.44, -0.04, 0, 0, 0.2); B.add(skin, 0.07, 0.3, 0.05, 0.1, 0.44, -0.04, 0, 0, -0.2); // tall ears
+    for (const s of [-1, 1]) { B.add(white, 0.06, 0.05, 0.012, s * 0.08, 0.24, 0.135); B.add(dark, 0.03, 0.045, 0.014, s * 0.08, 0.24, 0.14); }
+  } else if (kind === 'bear') {
+    B.add(skin, 0.38, 0.34, 0.34, 0, 0.18, 0);
+    B.add(skin, 0.1, 0.1, 0.06, -0.15, 0.37, 0); B.add(skin, 0.1, 0.1, 0.06, 0.15, 0.37, 0);
+    B.add(cm('#e8e4d8'), 0.18, 0.13, 0.12, 0, 0.1, 0.19);
+    B.add(dark, 0.08, 0.05, 0.04, 0, 0.14, 0.255);
+    for (const s of [-1, 1]) B.add(dark, 0.035, 0.035, 0.012, s * 0.08, 0.24, 0.172);
   } else if (kind === 'monkey') {
     B.add(skin, 0.34, 0.34, 0.3, 0, 0.18, 0);
     B.add(cm('#d8b890'), 0.26, 0.2, 0.08, 0, 0.14, 0.14);       // face
@@ -338,6 +357,14 @@ export function pose(rig, mode, dt, t, speed = 0) {
       T.alz = 2.3 + Math.sin(t * 6) * 0.15; T.arz = -2.3 - Math.sin(t * 6) * 0.15; T.alx = -0.4; T.arx = -0.4; T.sx = -0.12; T.hx = -0.15; T.by = Math.abs(Math.sin(t * 3)) * 0.03; break;
     case 'press':
       T.llx = -1.5; T.lrx = -1.5; T.by = -0.45; T.alx = -2.75 + Math.sin(t * 2) * 0.1; T.arx = -2.75 + Math.sin(t * 2) * 0.1; T.sx = -0.2; break;
+    case 'clap': {
+      const c = Math.max(0, Math.sin(t * 12.6));
+      T.alx = -1.35; T.arx = -1.35; T.alz = 0.25 - c * 0.45; T.arz = -0.25 + c * 0.45; T.hx = -0.1; break;
+    }
+    case 'rap':
+      T.arx = -1.7 + Math.sin(t * 8) * 0.45; T.arz = -0.2; T.alx = -0.4; T.alz = 0.2; T.hx = Math.sin(t * 8) * 0.15; T.sy = Math.sin(t * 4) * 0.15; T.by = Math.abs(Math.sin(t * 8)) * 0.05; T.llx = 0.15; T.lrx = -0.15; break;
+    case 'fight':
+      T.alx = -1.5; T.arx = -0.9; T.alz = 0.35; T.arz = -0.35; T.sx = 0.15; T.llx = 0.4; T.lrx = -0.4; T.by = -0.08 + Math.abs(Math.sin(t * 5)) * 0.03; break;
     case 'sixseven':
       T.alx = -1.25 + Math.sin(t * 6) * 0.55; T.arx = -1.25 - Math.sin(t * 6) * 0.55; T.alz = 0.25; T.arz = -0.25; T.hy = Math.sin(t * 3) * 0.2; T.by = Math.abs(Math.sin(t * 6)) * 0.04; break;
     case 'peck': {

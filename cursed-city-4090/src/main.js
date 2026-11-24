@@ -102,7 +102,7 @@ function startGame() {
   G.input.lock();
   G.ui.hideScreens();
   G.ui.show('hud');
-  if (G.state === 'menu') { G.state = 'play'; G.player.yaw = 0; if (G.startMode === 'metro') G.director.task(G.director.metroEnterTask); }
+  if (G.state === 'menu') { G.state = 'play'; G.player.yaw = 0; if (G.startMode === 'metro') { G.player.pos.set(0, -120, 3); G.director.task(G.director.metroEnterTask); } }
   else if (G.state === 'paused') G.state = 'play';
 }
 document.getElementById('btn-start').onclick = () => { G.startMode = 'city'; startGame(); };
