@@ -35,12 +35,14 @@ export class UI {
 
   /** Queue a subtitle. who = speaker name (optional). */
   say(text, who = '', dur = 2.6, color = '#fff') {
-    this.subQueue.push({ text, who, dur, color });
+    this.subQueue.push({ text, who, dur, color, at: performance.now() });
     if (this.subQueue.length > 4) this.subQueue.shift();
     if (this.subTimer <= 0) this._nextSub();
   }
   _nextSub() {
-    const s = this.subQueue.shift();
+    let s = this.subQueue.shift();
+    while (s && performance.now() - s.at > 4000) s = this.subQueue.shift(); // drop stale lines
+    if (s && this.subQueue.length > 1) s.dur = Math.min(s.dur, 1.6);
     if (!s) { this.el.subtitle.style.opacity = '0'; return; }
     this.el.subtitle.innerHTML = (s.who ? `<b style="color:${s.color}">${s.who}:</b> ` : '') + escapeHtml(s.text);
     this.el.subtitle.style.opacity = '1';
@@ -62,6 +64,27 @@ export class UI {
     this.el.events.prepend(d);
     setTimeout(() => d.classList.add('out'), 4000);
     setTimeout(() => d.remove(), 5000);
+  }
+
+  achievement(title, desc) {
+    const box = document.getElementById('achievements');
+    const d = document.createElement('div');
+    d.className = 'ach';
+    d.innerHTML = `<span class="trophy">🏆</span><div><b>ACHIEVEMENT UNLOCKED</b><br>${escapeHtml(title)}<small>${escapeHtml(desc)}</small></div>`;
+    box.appendChild(d);
+    setTimeout(() => d.classList.add('out'), 4500);
+    setTimeout(() => d.remove(), 5500);
+  }
+
+  /** Fake "program not responding" dialog. stage 0 = hide, 1 = frozen, 2 = just kidding. */
+  crashDialog(stage) {
+    const c = document.getElementById('crash');
+    if (!stage) { c.classList.add('hidden'); return; }
+    c.classList.remove('hidden');
+    document.getElementById('crash-title').textContent = stage === 1 ? '4090city.exe (Not Responding)' : '4090city.exe';
+    document.getElementById('crash-body').innerHTML = stage === 1
+      ? '4090city.exe is not responding.<br><br>If you close the program, you might lose your sanity.'
+      : '<span style="color:#c00;font-size:28px">just kidding :)</span>';
   }
 
   hurt(amount) { this.flash = Math.min(1, this.flash + amount / 30); }

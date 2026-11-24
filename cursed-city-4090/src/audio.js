@@ -241,6 +241,17 @@ export class GameAudio {
     n.connect(g).connect(this.master); n.start(t, 0, 1);
   }
 
+  /** The classic frozen-program audio stutter: a tiny buffer looping. */
+  crashBuzz(dur = 3) {
+    if (!this.ctx) return;
+    const ctx = this.ctx, sr = ctx.sampleRate, len = Math.floor(sr * 0.045);
+    const buf = ctx.createBuffer(1, len, sr), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.sin(i / sr * 2 * Math.PI * 220) > 0 ? 0.5 : -0.5) * 0.6 + (Math.random() - 0.5) * 0.5;
+    const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true;
+    const g = ctx.createGain(); g.gain.value = 0.25;
+    s.connect(g).connect(this.master); s.start(); s.stop(this.t + dur);
+  }
+
   whoosh(vol = 0.4) {
     if (!this.ctx) return;
     const t = this.t, n = this._noiseSrc();
@@ -290,6 +301,14 @@ export class GameAudio {
       interval = setInterval(play, 220);
     } else if (kind === 'laughs') {
       interval = setInterval(() => { if (Math.random() < 0.6) this.laugh(pos, 0.35, rand(0.8, 1.4)); }, 2200);
+    } else if (kind === 'breath') {
+      const n = this._noiseSrc(true);
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 650; bp.Q.value = 1.5;
+      const g = ctx.createGain(); g.gain.value = 0;
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.32;
+      const lg = ctx.createGain(); lg.gain.value = 0.35;
+      lfo.connect(lg).connect(g.gain);
+      n.connect(bp).connect(g).connect(gain); n.start(); lfo.start(); nodes.push(n, lfo);
     } else if (kind === 'engine') {
       const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 45;
       const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 260;

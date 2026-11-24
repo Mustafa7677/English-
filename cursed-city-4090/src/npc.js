@@ -159,6 +159,7 @@ export class NPC {
       limbs: this.randLimbs(), thuds: 0,
     };
     this.speed = 0;
+    if (this.G.director && this.G.director.onFall) this.G.director.onFall(this);
     if (!a.silent && Math.random() < 0.6 && this.kind === 'human') this.G.audio.scream(this.pos.clone().setY(1.6), rand(0.8, 1.3), 0.5, 0.25);
   }
   randLimbs() { return { alx: rand(-3, 0.5), arx: rand(-3, 0.5), alz: rand(0, 1.4), arz: rand(-1.4, 0), llx: rand(-1, 0.6), lrx: rand(-1, 0.6) }; }

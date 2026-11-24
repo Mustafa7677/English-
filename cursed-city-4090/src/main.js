@@ -179,7 +179,9 @@ function frame() {
   fpsAcc += dt; fpsFrames++;
   if (fpsAcc > 0.5) { fpsShown = Math.round(fpsFrames / fpsAcc); fpsAcc = 0; fpsFrames = 0; }
 
-  if (G.state === 'play') {
+  if (G.fakeCrash) {
+    // "not responding": no simulation, no new frames
+  } else if (G.state === 'play') {
     G.time += dt;
     G.player.update(dt);
     G.director.update(dt);
@@ -212,7 +214,7 @@ function frame() {
   G.ui.realFps(fpsShown, G.settings.showFps && G.state !== 'menu');
   G.audio.updateListener(camera);
   updateResolution();
-  renderer.render(scene, camera);
+  if (!G.fakeCrash) renderer.render(scene, camera);
   G.input.endFrame();
 }
 frame();

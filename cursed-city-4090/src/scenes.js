@@ -6,6 +6,7 @@ import {
   makeHumanoid, makeRobot, makeCart, makeTaxi, makeRTX, makeChair, makeTV, makeGiantHorseHead, randomLook, pose,
 } from './characters.js';
 import { mat, cyl, rand, pick, shuffle, clamp, angleWrap } from './util.js';
+import { extendDirector } from './scenes2.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 
@@ -451,6 +452,7 @@ export class Director {
     // the runner
     const W = G.world;
     const runner = this.human({ shirt: '#c0c0c0', pants: '#2a3a5a', hair: 'short' }, { pos: V(1.5, 0, -52), heading: 0, name: 'Running Man', color: '#ffcc66', voice: { pitch: 1.2, rate: 1.3 } });
+    this.runner = runner;
     const lamp = W.lamps.filter((l) => Math.abs(l.base.x) < 8 && l.base.z < -14 && l.base.z > -40).sort((a, b) => b.base.z - a.base.z)[0];
     G.audio.scream(V(1.5, 1.6, -52), 1.1, 1.5, 0.8);
     P.locked = false;
@@ -517,6 +519,14 @@ export class Director {
     if (threat && m.braveCd <= 0) {
       if (!m.brave) { m.brave = true; n.say(pick(['I GOT THIS!', 'STAY BEHIND ME!', 'NOT TODAY, MONSTER!', 'FRIENDSHIP POWEEER!']), 2, true); }
       n.steer(threat.x, threat.z, 6.6, dt, 'protect');
+      m.throwCd = (m.throwCd ?? 2) - dt;
+      if (m.throwCd <= 0 && Math.hypot(threat.x - n.pos.x, threat.z - n.pos.z) < 14) {
+        m.throwCd = rand(5, 9);
+        const aim = V(threat.x + rand(-3, 3), 0, threat.z + rand(-3, 3)).sub(n.pos).setY(0).normalize();
+        const br = G.props.spawnBrick(n.pos.clone().setY(n.pos.y + 1.6), aim.multiplyScalar(15).add(V(0, 3, 0)));
+        br.ignore = n; br.byBuddy = true;
+        n.say(pick(['EAT BRICK!', 'BRICK ATTACK!', 'I HAVE ONE (1) BRICK!']), 1.6, true);
+      }
       if (Math.random() < dt * 0.9 || Math.hypot(threat.x - n.pos.x, threat.z - n.pos.z) < 2) {
         m.brave = false; m.braveCd = 7;
         n.fallFrom({ dir: 'forward', power: 5.5, up: 0.6, lie: 1.4 });
@@ -524,6 +534,12 @@ export class Director {
       return;
     }
     m.brave = false;
+    if (P.fear > 0.7 && !this.horror) {
+      const fb = this.playerFwd();
+      if (G.time - (m.hideLine || -99) > 25) { m.hideLine = G.time; n.say(pick(["I'm guarding your back. From very close.", "Don't mind me. I live here now. Behind you.", 'If something comes, I will hold you as a shield. Respectfully.']), 3); }
+      n.steer(P.pos.x - fb.x * 0.9, P.pos.z - fb.z * 0.9, 4, dt, 'protect');
+      return;
+    }
     if (m.tripCd <= 0 && d < 15) { m.tripCd = rand(30, 55); n.fallFrom({ dir: 'forward', power: 4, up: 0.3, lie: 1.2 }); return; }
     const f = this.playerFwd();
     const tx = P.pos.x - f.x * 2.6 - f.z * 1.3, tz = P.pos.z - f.z * 2.6 + f.x * 1.3;
@@ -804,7 +820,20 @@ export class Director {
       yield A.face('player', 0.4, 'stare');
       yield A.wait(3, 'stare', { look: 'player' });
       yield A.call(() => { n.hostile = true; G.audio.scream(n.pos.clone().setY(2), 0.35, 1.5, 0.8); G.player.scare(0.35); });
-      yield A.chase(22, 6.8, { reach: 1.2, anim: 'run' });
+      const phoneCall = Math.random() < 0.45;
+      yield A.chase(phoneCall ? 7 : 22, 6.8, { reach: 1.2, anim: 'run' });
+      if (phoneCall && n.distToPlayer() > 1.6) {
+        yield A.call(() => { n.hostile = false; for (let i = 0; i < 6; i++) setTimeout(() => G.audio.beep(n.pos, i % 2 ? 1320 : 990, 0.08, 0.25, 'square'), i * 110); });
+        yield A.wait(0.8, 'stare');
+        yield A.anim('phone', 0.5);
+        yield A.say('...hello? ...Yes, mom.');
+        yield A.anim('phone', 2.4);
+        yield A.say('No mom, I am NOT chasing humans again.');
+        yield A.anim('phone', 2.4);
+        yield A.face('player', 0.3, 'phone');
+        yield A.say('...this is not over. Love you mom.');
+        yield A.anim('phone', 1.5);
+      }
       yield A.call(() => {
         n.hostile = false;
         if (n.distToPlayer() < 1.6) D.jumpscare('horse', 15);
@@ -1082,7 +1111,7 @@ export class Director {
     const G = this.G;
     if (G.time < this.nextEvent || this.horror || this.horrorRunning || G.player.inVehicle || G.player.inBasement()) return;
     if (this.inKindergarten(G.player.pos)) { this.nextEvent = G.time + 5; return; }
-    const all = ['tripper', 'phone', 'guard', 'pair', 'creeper', 'fight', 'stopper', 'tv', 'chair', 'doorchase'];
+    const all = this.gagNames();
     for (let tries = 0; tries < all.length; tries++) {
       if (!this.bag.length) this.bag = shuffle(all.slice());
       const g = this.bag.pop();
@@ -1533,3 +1562,5 @@ export class Director {
     if (G.frame % 30 === 0) this.updateQuest();
   }
 }
+
+extendDirector(Director);
