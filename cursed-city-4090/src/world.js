@@ -39,7 +39,7 @@ export class World {
     return this.addCollider(p.x - w / 2, p.x + w / 2, p.z - d / 2, p.z + d / 2, p.y - h / 2, p.y + h / 2);
   }
 
-  floorAt(x, z, y) { return y < -40 ? -60 : y < -10 ? -20 : 0; }
+  floorAt(x, z, y) { return y < -90 ? -120 : y < -40 ? -60 : y < -10 ? -20 : 0; }
 
   /** Push a vertical cylinder (pos = feet) out of colliders. Returns the last collider hit or null. */
   resolve(pos, r, height = 1.8) {

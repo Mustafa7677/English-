@@ -19,6 +19,7 @@ import { extendDirector11 } from './scenes11.js';
 import { extendDirector12 } from './scenes12.js';
 import { extendDirector13 } from './scenes13.js';
 import { extendDirector14 } from './scenes14.js';
+import { extendDirector15 } from './scenes15.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 
@@ -469,6 +470,7 @@ export class Director {
   // ---------- INTRO ----------
   *introTask() {
     const G = this.G, P = G.player;
+    if (G.startMode === 'metro') return; // started straight in the metro: no city intro
     P.locked = true; P.pitch = 1.25;
     G.ui.fade(1, 0.01);
     G.ui.big('03:33 AM', 2.5, 'clock');
@@ -1566,7 +1568,7 @@ export class Director {
     // basement light flicker
     this.basementLight.intensity = Math.random() < 0.05 ? 0 : this.basementLight.userData.base;
     // horror shift on a timer
-    if (!this.horror && !this.horrorRunning && G.time > G.settings.horrorMinutes * 60) this.task(this.horrorTask);
+    if (!this.horror && !this.horrorRunning && G.time - (this.timeAway || 0) > G.settings.horrorMinutes * 60) this.task(this.horrorTask);
     // NVIDIA scene also happens on its own after a while (you can hear it)
     if (!this.flags.nvidia && G.time > 300) this.task(this.nvidiaTask);
     // mannequins stand back up when nobody is watching
@@ -1607,3 +1609,4 @@ extendDirector11(Director);
 extendDirector12(Director);
 extendDirector13(Director);
 extendDirector14(Director);
+extendDirector15(Director);

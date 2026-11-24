@@ -102,10 +102,11 @@ function startGame() {
   G.input.lock();
   G.ui.hideScreens();
   G.ui.show('hud');
-  if (G.state === 'menu') { G.state = 'play'; G.player.yaw = 0; }
+  if (G.state === 'menu') { G.state = 'play'; G.player.yaw = 0; if (G.startMode === 'metro') G.director.task(G.director.metroEnterTask); }
   else if (G.state === 'paused') G.state = 'play';
 }
-document.getElementById('btn-start').onclick = startGame;
+document.getElementById('btn-start').onclick = () => { G.startMode = 'city'; startGame(); };
+document.getElementById('btn-metro').onclick = () => { G.startMode = 'metro'; startGame(); };
 document.getElementById('btn-resume').onclick = startGame;
 document.querySelectorAll('.btn-restart').forEach((b) => (b.onclick = () => location.reload()));
 document.querySelectorAll('.btn-settings').forEach((b) => (b.onclick = () => document.getElementById('settings').classList.toggle('hidden')));

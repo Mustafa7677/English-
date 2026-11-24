@@ -84,7 +84,7 @@ export class NPC {
   }
 
   // ----- helpers -----
-  distToPlayer() { const p = this.G.player.pos; return Math.hypot(p.x - this.pos.x, p.z - this.pos.z); }
+  distToPlayer() { const p = this.G.player.pos; if (Math.abs(p.y - this.pos.y) > 15) return 999; return Math.hypot(p.x - this.pos.x, p.z - this.pos.z); }
   forward(v = new THREE.Vector3()) { return v.set(Math.sin(this.heading), 0, Math.cos(this.heading)); }
   turnTo(angle, dt, rate = 10) {
     const d = angleWrap(angle - this.heading);

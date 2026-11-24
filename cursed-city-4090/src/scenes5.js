@@ -125,7 +125,7 @@ export function extendDirector5(D) {
   // ---------------------------------------------------------------- objective & compass
   P.objectiveTarget = function () {
     const G = this.G, Pl = G.player, W = G.world;
-    if (this.ended) return null;
+    if (this.ended || (this.metro && this.metro.active)) return null;
     if (!Pl.hasRTX) {
       if (this.rtxProp) return { pos: this.rtxProp.pos, label: 'RTX 4090' };
       if (this.flags.nvidia && this.woman && this.woman.holding && !this.woman.hidden) return { pos: this.woman.pos, label: 'Mei (has the 4090)' };
