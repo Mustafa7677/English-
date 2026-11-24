@@ -5,6 +5,10 @@
 
 ## Іске қосу
 
+**Орнатусыз ойнау:** `play.html` — бүкіл ойын бір файлда. GitHub Pages қосылса, тікелей ашылады:
+`https://mustafa7677.github.io/English-/cursed-city-4090/play.html`
+
+
 Node.js 18+ керек.
 
 ```bash
