@@ -99,6 +99,20 @@ export class UI {
     this.screamTimer = dur;
   }
 
+  /** Meme freeze-frame: sepia + caption (the game loop pauses rendering meanwhile). */
+  memeFreeze(text, ms = 1600) {
+    const m = document.getElementById('meme'), c = document.getElementById('game');
+    m.textContent = text; m.classList.remove('hidden');
+    c.style.filter = 'sepia(1) contrast(1.25) brightness(1.1)';
+    clearTimeout(this._memeT);
+    this._memeT = setTimeout(() => { m.classList.add('hidden'); c.style.filter = ''; }, ms);
+  }
+  whiteFlash() {
+    const w = document.getElementById('whiteflash');
+    w.style.transition = 'none'; w.style.opacity = '1';
+    requestAnimationFrame(() => { w.style.transition = 'opacity 1.2s'; w.style.opacity = '0'; });
+  }
+
   glitch(level) { // 0..1
     const g = this.el.glitch;
     g.style.opacity = String(level);
@@ -140,6 +154,21 @@ export class UI {
   }
 }
 
+function drawBuddySelfie(ctx, W, H) {
+  ctx.fillStyle = '#fff8e0'; ctx.fillRect(0, 0, W, H);
+  ctx.save(); ctx.translate(W / 2, H / 2 + 20);
+  ctx.fillStyle = '#e0b58f'; ctx.beginPath(); ctx.ellipse(0, 0, 105, 120, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#2a8a2a'; ctx.fillRect(-110, -125, 220, 50); ctx.fillRect(-40, -85, 170, 18);
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); ctx.arc(-38, -20, 13, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(38, -20, 13, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#300'; ctx.beginPath(); ctx.arc(0, 30, 62, 0, Math.PI); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.fillRect(-55, 30, 110, 16);
+  ctx.restore();
+  ctx.fillStyle = '#111'; ctx.font = 'bold 26px monospace'; ctx.textAlign = 'center';
+  ctx.fillText('SAY CHEESE!', W / 2, 28);
+}
+
 function escapeHtml(s) {
   return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
@@ -147,7 +176,8 @@ function escapeHtml(s) {
 function drawScreamer(ctx, kind) {
   const W = 320, H = 240;
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
-  const skin = { horse: '#4a2c18', robot: '#2a3a2a', ghost: '#cfcfc4', toilet: '#e8e8e8' }[kind] || '#4a2c18';
+  if (kind === 'buddy') { drawBuddySelfie(ctx, W, H); return; }
+  const skin = { horse: '#4a2c18', robot: '#2a3a2a', ghost: '#cfcfc4', toilet: '#e8e8e8', pale: '#d8d6cc', mannequin: '#cdb899', log: '#8a5a2c', shark: '#7a8a96' }[kind] || '#4a2c18';
   ctx.save();
   ctx.translate(W / 2, H / 2 + 10);
   // head shape
@@ -157,12 +187,16 @@ function drawScreamer(ctx, kind) {
     ctx.moveTo(-70, -110); ctx.lineTo(70, -110); ctx.lineTo(95, 20); ctx.lineTo(60, 130); ctx.lineTo(-60, 130); ctx.lineTo(-95, 20);
   } else if (kind === 'robot') {
     ctx.rect(-110, -100, 220, 210);
+  } else if (kind === 'log') {
+    ctx.rect(-80, -125, 160, 260);
+  } else if (kind === 'shark') {
+    ctx.moveTo(-150, 40); ctx.quadraticCurveTo(0, -170, 150, 40); ctx.quadraticCurveTo(0, 140, -150, 40);
   } else {
     ctx.ellipse(0, 0, 100, 125, 0, 0, Math.PI * 2);
   }
   ctx.fill();
   // eyes
-  const eye = kind === 'robot' ? '#76ff03' : kind === 'ghost' ? '#000' : '#ff1a1a';
+  const eye = kind === 'robot' ? '#76ff03' : (kind === 'ghost' || kind === 'pale' || kind === 'mannequin') ? '#000' : kind === 'log' ? '#fff' : '#ff1a1a';
   ctx.shadowColor = eye; ctx.shadowBlur = 25; ctx.fillStyle = eye;
   if (kind === 'robot') { ctx.fillRect(-90, -50, 180, 26); }
   else {

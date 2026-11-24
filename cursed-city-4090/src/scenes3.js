@@ -29,7 +29,7 @@ const RADIO = {
   ],
 };
 
-const DEATHS = {
+export const DEATHS = {
   horse: ['Trampled by a horse in a top hat.', 'He just wanted his cart back.'],
   robot: ['Deleted by an NVIDIA Guard-Bot.', 'Your framerate has dropped to 0.'],
   toilet: ['Defeated by a toilet.', 'It was about the WiFi all along.'],

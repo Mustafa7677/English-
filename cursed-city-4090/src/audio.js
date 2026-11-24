@@ -252,6 +252,40 @@ export class GameAudio {
     s.connect(g).connect(this.master); s.start(); s.stop(this.t + dur);
   }
 
+  /** Deep meme "boom" with distortion. */
+  vineBoom(vol = 0.9) {
+    if (!this.ctx) return;
+    const t = this.t, ctx = this.ctx;
+    const sh = ctx.createWaveShaper(); const curve = new Float32Array(256);
+    for (let i = 0; i < 256; i++) { const x = i / 128 - 1; curve[i] = Math.tanh(x * 4); }
+    sh.curve = curve;
+    const g = ctx.createGain(); this._env(g, t, 0.005, vol, 1.4);
+    sh.connect(g).connect(this.master);
+    [55, 110, 82].forEach((f) => {
+      const o = ctx.createOscillator(); o.type = 'sine';
+      o.frequency.setValueAtTime(f * 1.6, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.12);
+      o.connect(sh); o.start(t); o.stop(t + 1.5);
+    });
+  }
+
+  squeak(pos, vol = 0.4) { // rubber chicken
+    if (!this.ctx) return;
+    const t = this.t, out = this._out(pos, 4);
+    const o = this.ctx.createOscillator(); o.type = 'square';
+    o.frequency.setValueAtTime(1400, t); o.frequency.exponentialRampToValueAtTime(500, t + 0.35);
+    const f = this.ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1200; f.Q.value = 2;
+    const g = this.ctx.createGain(); this._env(g, t, 0.01, vol, 0.35);
+    o.connect(f).connect(g).connect(out); o.start(t); o.stop(t + 0.45);
+  }
+
+  shutter() {
+    if (!this.ctx) return;
+    const t = this.t, n = this._noiseSrc();
+    const hp = this.ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3000;
+    const g = this.ctx.createGain(); this._env(g, t, 0.001, 0.5, 0.05);
+    n.connect(hp).connect(g).connect(this.sfx); n.start(t, 0, 0.1);
+  }
+
   whoosh(vol = 0.4) {
     if (!this.ctx) return;
     const t = this.t, n = this._noiseSrc();
@@ -299,6 +333,24 @@ export class GameAudio {
         i++;
       };
       interval = setInterval(play, 220);
+    } else if (kind === 'coffin') {
+      // minor-key dance beat with a kick (for the pallbearers)
+      const lead = [440, 440, 523, 494, 440, 392, 440, 330];
+      let i = 0;
+      interval = setInterval(() => {
+        const t = ctx.currentTime;
+        const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = lead[i % lead.length];
+        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800;
+        const g = ctx.createGain(); this._env(g, t, 0.005, 0.12, 0.16);
+        o.connect(lp).connect(g).connect(gain); o.start(t); o.stop(t + 0.2);
+        if (i % 2 === 0) {
+          const k = ctx.createOscillator(); k.type = 'sine';
+          k.frequency.setValueAtTime(140, t); k.frequency.exponentialRampToValueAtTime(40, t + 0.15);
+          const kg = ctx.createGain(); this._env(kg, t, 0.002, 0.5, 0.18);
+          k.connect(kg).connect(gain); k.start(t); k.stop(t + 0.2);
+        }
+        i++;
+      }, 190);
     } else if (kind === 'laughs') {
       interval = setInterval(() => { if (Math.random() < 0.6) this.laugh(pos, 0.35, rand(0.8, 1.4)); }, 2200);
     } else if (kind === 'breath') {

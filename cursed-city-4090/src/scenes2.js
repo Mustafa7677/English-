@@ -79,7 +79,7 @@ export function makeShopCart() {
   return g;
 }
 
-const ACH = {
+export const ACH = {
   falls5: ['Physics Is Optional', 'Watch 5 people fall over'],
   falls20: ['Professional Faceplant Spectator', 'Watch 20 people fall over'],
   falls50: ['Ragdoll Sommelier', 'Watch 50 people fall over'],
