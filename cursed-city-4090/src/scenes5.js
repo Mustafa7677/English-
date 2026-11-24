@@ -93,7 +93,7 @@ export function extendDirector5(D) {
       const b = this.buddy;
       if (b && !b.removed) {
         b.mem.golden = true; b.mem.tripCd = 1e9;
-        b.rig.head.traverse((m) => { if (m.isMesh && m.material && m.material.color && m.position.y > 0.3) m.material = mat('#e0c020', { emissive: '#604000' }); });
+        if (b.rig.hat) b.rig.hat.traverse((m) => { if (m.isMesh) m.material = mat('#e0c020', { emissive: '#604000' }); });
         this.after(2, () => b.say('I... I CAN WALK WITHOUT FALLING. IS THIS WHAT YOU PEOPLE FEEL LIKE?', 4, true));
       }
     }

@@ -171,6 +171,8 @@ export class World {
     this.buildNvidia();
     this.buildKindergarten();
     this.buildSupermarket();
+    this.buildGym();
+    this.buildLaundromat();
     this.buildGasStation();
     this.buildToilet();
     this.buildBusStop();
@@ -208,6 +210,7 @@ export class World {
 
   residentialBlock(cx, cz, hatch) {
     for (const ox of [-11, 11]) for (const oz of [-11, 11]) {
+      if (cx === 30 && cz === 89 && oz === -11) continue; // gym + laundromat go here
       const w = rand(12, 16), d = rand(12, 16), h = pick([7, 10, 13, 16, 22, 28]);
       this.building(cx + ox, cz + oz, w, d, h);
     }
@@ -322,6 +325,10 @@ export class World {
     // a rusty (adult) swing frame out front
     const rust = mat('#4a2e1c');
     this.group.add(box(0.12, 3, 0.12, rust, -46.5, 1.5, -6.5 - 5), box(0.12, 3, 0.12, rust, -46.5, 1.5, -6.5 - 1), box(0.12, 0.12, 4, rust, -46.5, 3, -9.5));
+    const swing = new THREE.Group(); swing.position.set(-46.5, 3, -9.5); swing.userData.dynamic = true;
+    swing.add(box(0.03, 2.4, 0.03, mat('#555'), 0, -1.2, -0.3), box(0.03, 2.4, 0.03, mat('#555'), 0, -1.2, 0.3), box(0.45, 0.05, 0.75, rust, 0, -2.4, 0));
+    swing.traverse((m) => (m.userData.dynamic = true));
+    this.group.add(swing); this.swing = swing;
     this.kg = { X0, X1, Z0, Z1, H };
     this.spots.kgEntrance = new THREE.Vector3(-30, 0, -10);
     this.spots.kgEnd = new THREE.Vector3(-30, 0, -48.5);
@@ -364,7 +371,7 @@ export class World {
     wall(X1 - T, X1, Z0, cz - 1.05); wall(X1 - T, X1, cz + 1.05, Z1); wall(X1 - T, X1, cz - 1.05, cz + 1.05, 2.5, h, false);
     // plain interior lining so the inside walls don't show the outside windows
     const lining = mat('#6e7468');
-    const L = 0.02, e = T + 0.012;
+    const L = 0.04, e = T + 0.1; // keep the lining well clear of the wall (PS1 vertex snap)
     this.group.add(box(L, h, d - 2 * T, lining, X0 + e, h / 2, cz, false), box(w - 2 * T, h, L, lining, cx, h / 2, Z1 - e, false), box(w - 2 * T, h, L, lining, cx, h / 2, Z0 + e, false));
     this.group.add(box(L, h, cz - 1.05 - Z0 - T, lining, X1 - e, h / 2, (Z0 + T + cz - 1.05) / 2, false), box(L, h, Z1 - T - cz - 1.05, lining, X1 - e, h / 2, (cz + 1.05 + Z1 - T) / 2, false));
     this.group.add(box(L, h - 2.5, 2.1, lining, X1 - e, (h + 2.5) / 2, cz, false));
@@ -423,6 +430,120 @@ export class World {
     this.spots.marketDumpster = new THREE.Vector3(front + 1.4, 0, cz + 6);
   }
 
+  /**
+   * Generic enterable building with a doorway in the north wall (min z).
+   * o: { facade, lining, floorA, floorB, sign, signBg, signFg, light }
+   */
+  buildRoom(cx, cz, w, d, h, o) {
+    const X0 = cx - w / 2, X1 = cx + w / 2, Z0 = cz - d / 2, Z1 = cz + d / 2, T = 0.3, dx = o.doorX ?? cx, dw = 1.25;
+    const wall = (x0, x1, z0, z1, y0 = 0, y1 = h, solid = true) => {
+      const m = new THREE.Mesh(facadeBox(x1 - x0, y1 - y0, z1 - z0), o.facade);
+      m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); m.castShadow = true; m.receiveShadow = true;
+      this.group.add(m);
+      if (solid) this.addCollider(x0, x1, z0, z1, y0 - 1, y1);
+    };
+    wall(X0, X0 + T, Z0, Z1); wall(X1 - T, X1, Z0, Z1); wall(X0, X1, Z1 - T, Z1);
+    wall(X0, dx - dw, Z0, Z0 + T); wall(dx + dw, X1, Z0, Z0 + T); wall(dx - dw, dx + dw, Z0, Z0 + T, 2.6, h, false);
+    const lin = mat(o.lining), L = 0.04, e = T + 0.1;
+    this.group.add(box(L, h, d - 2 * T, lin, X0 + e, h / 2, cz, false), box(L, h, d - 2 * T, lin, X1 - e, h / 2, cz, false), box(w - 2 * T, h, L, lin, cx, h / 2, Z1 - e, false));
+    this.group.add(box(dx - dw - X0 - T, h, L, lin, (X0 + T + dx - dw) / 2, h / 2, Z0 + e, false), box(X1 - T - dx - dw, h, L, lin, (dx + dw + X1 - T) / 2, h / 2, Z0 + e, false));
+    this.group.add(box(2 * dw, h - 2.6, L, lin, dx, (h + 2.6) / 2, Z0 + e, false));
+    this.group.add(box(w + 0.4, 0.4, d + 0.4, this.roofMat, cx, h + 0.2, cz));
+    const ft = canvasTex(32, 32, (ctx) => { ctx.fillStyle = o.floorA; ctx.fillRect(0, 0, 32, 32); ctx.fillStyle = o.floorB; ctx.fillRect(0, 0, 16, 16); ctx.fillRect(16, 16, 16, 16); });
+    ft.wrapS = ft.wrapT = THREE.RepeatWrapping; ft.repeat.set(w / 2, d / 2);
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(w - 0.6, d - 0.6), mat('#ffffff', { map: ft }));
+    floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0.06, cz); floor.receiveShadow = true; this.group.add(floor);
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(6, 1.1), basic('#fff', { map: textTex(o.sign, { w: 512, h: 96, bg: o.signBg, fg: o.signFg, font: 'bold 56px monospace' }) }));
+    sign.position.set(dx, 3.4, Z0 - 0.05); sign.rotation.y = Math.PI; this.group.add(sign);
+    const panels = [];
+    for (const px of [cx - w / 4, cx + w / 4]) for (const pz of [cz - d / 5, cz + d / 5]) {
+      const b = box(2.2, 0.08, 0.45, this.marketPanelOn, px, h - 0.1, pz, false); b.userData.dynamic = true; this.group.add(b); panels.push(b);
+    }
+    const light = this.G.lighting.addSpecial(o.light, 7, 16, new THREE.Vector3(cx, h - 1.2, cz));
+    return { X0, X1, Z0, Z1, panels, light, door: new THREE.Vector3(dx, 0, Z0 - 1.2) };
+  }
+
+  buildGym() {
+    const facade = mat('#ffffff', { map: this.facadeTex('#3a3a44', '#101014', '#e0e0ff', 0.3) });
+    const R = this.gym = this.buildRoom(18, 82, 18, 14, 4.5, { facade, lining: '#55585e', floorA: '#2a2a2e', floorB: '#222226', sign: '4090 GYM 24/7', signBg: '#111', signFg: '#ff3030', light: 0xf0f0ff });
+    const metal = mat('#2a2a2a'), rubber = mat('#151515'), red = mat('#a02020');
+    // mirror wall
+    this.group.add(box(14, 2.4, 0.03, mat('#9ab0b0', { emissive: '#1a2424' }), 18, 1.6, R.Z1 - 0.34, false));
+    // treadmills (facing the mirror)
+    this.treadmills = [];
+    for (const x of [11.6, 14]) {
+      const g = new THREE.Group(); g.position.set(x, 0, 84.5);
+      g.add(box(0.9, 0.18, 2.0, metal, 0, 0.09, 0));
+      const belt = box(0.7, 0.02, 1.8, rubber, 0, 0.19, 0, false); g.add(belt);
+      g.add(box(0.06, 1.1, 0.06, metal, -0.4, 0.7, 0.9), box(0.06, 1.1, 0.06, metal, 0.4, 0.7, 0.9), box(0.9, 0.25, 0.15, metal, 0, 1.3, 0.95));
+      g.add(box(0.5, 0.15, 0.02, basic('#30ff60'), 0, 1.32, 0.87, false));
+      this.group.add(g); this.treadmills.push({ g, belt, pos: new THREE.Vector3(x, 0.2, 84.3) });
+      this.addCollider(x - 0.45, x + 0.45, 83.5, 85.5, -1, 0.3);
+    }
+    // bench press
+    this.group.add(box(0.45, 0.45, 1.5, mat('#3a1a1a'), 22, 0.225, 84));
+    this.group.add(box(0.06, 1.7, 0.06, metal, 21.3, 0.85, 84.7), box(0.06, 1.7, 0.06, metal, 22.7, 0.85, 84.7));
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 2.2, 6), metal); bar.rotation.z = Math.PI / 2; bar.position.set(22, 1.75, 84.7); this.group.add(bar);
+    for (const s of [-1, 1]) for (const k of [0, 1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.06, 10), rubber); p.rotation.z = Math.PI / 2; p.position.set(22 + s * (0.85 + k * 0.08), 1.75, 84.7); this.group.add(p); }
+    this.addCollider(21.75, 22.25, 83.25, 84.75, -1, 0.45);
+    this.spots.skeleton = new THREE.Vector3(22, 0, 83.6);
+    // dumbbell rack + posters + punching bag
+    this.group.add(box(0.7, 0.9, 3.4, metal, 25.9, 0.45, 80.5)); this.addCollider(25.55, 26.25, 78.8, 82.2, -1, 0.9);
+    for (let i = 0; i < 7; i++) this.group.add(box(0.35, 0.12, 0.12, rubber, 25.9, 0.96, 79 + i * 0.45));
+    const poster = (t, x, z, ry) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.7), basic('#fff', { map: textTex(t, { w: 512, h: 128, bg: '#111', fg: '#ffd020', font: 'bold 44px Impact, sans-serif', glow: false }) })); p.position.set(x, 3, z); p.rotation.y = ry; this.group.add(p); };
+    poster('NEVER SKIP LEG DAY', R.X0 + 0.34, 80, Math.PI / 2);
+    poster('NO PAIN NO GAIN', R.X1 - 0.34, 85, -Math.PI / 2);
+    poster('GAINS > SLEEP', 13, R.Z0 + 0.34, 0);
+    const bag = new THREE.Group(); bag.position.set(16, 4.4, 79); bag.userData.dynamic = true;
+    bag.add(box(0.03, 1.2, 0.03, metal, 0, -0.6, 0));
+    const bagMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 1.2, 10), red); bagMesh.position.y = -1.8; bag.add(bagMesh);
+    bag.traverse((m) => (m.userData.dynamic = true));
+    this.group.add(bag); this.punchBag = bag;
+    this.treadmills.forEach((t) => { t.g.userData.dynamic = true; t.belt.userData.dynamic = true; });
+  }
+
+  buildLaundromat() {
+    const facade = mat('#ffffff', { map: this.facadeTex('#4a4a40', '#141412', '#d0e8ff', 0.5) });
+    const R = this.laundry = this.buildRoom(42, 82, 18, 14, 4.2, { facade, lining: '#8a9a96', floorA: '#b8bcb0', floorB: '#3a6a8a', sign: 'LAUNDRO-MAT', signBg: '#0a2a4a', signFg: '#9cf', light: 0xe8f4ff });
+    const white = mat('#e6e6e0'), glass = basic('#4a6a7a', { transparent: true, opacity: 0.75 }), ring = mat('#888');
+    this.washers = [];
+    for (let i = 0; i < 6; i++) {
+      const x = 35.2 + i * 2.6, z = R.Z1 - 0.75;
+      const g = new THREE.Group(); g.position.set(x, 0, z); g.userData.dynamic = true;
+      g.add(box(0.85, 1.0, 0.75, white, 0, 0.5, 0));
+      const r = new THREE.Mesh(new THREE.CylinderGeometry(0.29, 0.29, 0.04, 14), ring); r.rotation.x = Math.PI / 2; r.position.set(0, 0.55, -0.38); g.add(r);
+      const door = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.05, 14), glass); door.rotation.x = Math.PI / 2; door.position.set(0, 0.55, -0.39); g.add(door);
+      g.add(box(0.6, 0.08, 0.02, basic(i % 2 ? '#30ff60' : '#ff3030'), 0, 0.9, -0.38, false));
+      g.traverse((m) => (m.userData.dynamic = true));
+      this.group.add(g);
+      const col = this.addCollider(x - 0.43, x + 0.43, z - 0.38, z + 0.38, -1, 1);
+      this.washers.push({ g, door, col, home: g.position.clone(), front: new THREE.Vector3(x, 0, z - 1) });
+    }
+    // dryers on the east wall
+    this.dryers = [];
+    for (const z of [79, 81.4]) {
+      const x = R.X1 - 0.75;
+      const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = -Math.PI / 2;
+      g.add(box(0.85, 1.4, 0.75, white, 0, 0.7, 0));
+      const d = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.05, 14), glass); d.rotation.x = Math.PI / 2; d.position.set(0, 0.85, 0.39); g.add(d);
+      this.group.add(g); this.addCollider(x - 0.38, x + 0.38, z - 0.43, z + 0.43, -1, 1.4);
+      this.dryers.push({ g, pos: new THREE.Vector3(x - 0.5, 0.9, z) });
+    }
+    // vending machine (tips over if you shake it)
+    const vm = new THREE.Group(); vm.position.set(R.X0 + 0.8, 0, 79); vm.userData.dynamic = true;
+    const body = new THREE.Group(); body.position.set(0.4, 0, 0); vm.add(body); // pivot at its front-bottom edge
+    body.add(box(0.8, 2.0, 0.95, mat('#b01818'), -0.4, 1.0, 0));
+    body.add(box(0.03, 1.3, 0.7, basic('#5a8aa0', { transparent: true, opacity: 0.8 }), 0.005, 1.2, 0, false));
+    const lab = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.2), basic('#fff', { map: textTex('SNACKS', { w: 128, h: 40, bg: '#b01818', fg: '#fff', font: 'bold 28px monospace', glow: false }) }));
+    lab.rotation.y = Math.PI / 2; lab.position.set(0.02, 1.85, 0); body.add(lab);
+    vm.traverse((m) => (m.userData.dynamic = true));
+    this.group.add(vm);
+    this.vending = { g: vm, body, col: this.addCollider(R.X0 + 0.4, R.X0 + 1.2, 78.5, 79.5, -1, 2), pos: new THREE.Vector3(R.X0 + 1.4, 1.2, 79) };
+    // folding table
+    this.group.add(box(3, 0.08, 1.2, mat('#9a8a70'), 42, 0.85, 82)); this.addCollider(40.5, 43.5, 81.4, 82.6, -1, 0.9);
+    this.group.add(box(0.06, 0.85, 0.06, mat('#555'), 40.7, 0.42, 81.5), box(0.06, 0.85, 0.06, mat('#555'), 43.3, 0.42, 82.5));
+  }
+
   buildGasStation() {
     const concrete = mat('#4a4a46'), red = mat('#6a1a14');
     const canopy = box(16, 0.5, 10, red, 32, 5, 26); canopy.rotation.z = 0.06; canopy.rotation.x = -0.03; this.group.add(canopy);
@@ -438,6 +559,7 @@ export class World {
     const pole = cyl(0.15, 0.15, 8, 6, concrete, 14, 4, 14); this.group.add(pole); this.solid(pole, 0.3, 8, 0.3);
     const sign = new THREE.Mesh(new THREE.BoxGeometry(3, 1.6, 0.3), basic('#fff', { map: textTex('GAS 4.09', { w: 256, h: 128, bg: '#300', fg: '#ff6a00', font: 'bold 60px monospace' }) }));
     sign.position.set(14, 8.5, 14); this.group.add(sign);
+    this.gasSign = sign;
     for (let i = 0; i < 10; i++) this.group.add(box(rand(0.3, 1.2), rand(0.2, 0.6), rand(0.3, 1.2), concrete, rand(22, 44), 0.2, rand(32, 40)));
     this.generatorAt(new THREE.Vector3(44, 0, 34), 'Gas station');
     this.spots.dancer = new THREE.Vector3(22, 0, 18);

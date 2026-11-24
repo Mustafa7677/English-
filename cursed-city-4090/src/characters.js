@@ -1,101 +1,198 @@
 // Procedural low-poly 3D models: humanoids (people, horse-man, mannequins, ghost), robot,
 // cart, taxi, toilet monster, RTX 4090, props. Plus a shared pose/animation system.
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { mat, basic, box, cyl, textTex, lerp, rand } from './util.js';
 
 const SKINS = ['#e0b58f', '#c99572', '#8d5a3b', '#f1c9a5', '#a87250', '#6b4129'];
 const SHIRTS = ['#5a1f1f', '#1f3a5a', '#3a3a3a', '#55552a', '#2a4a2a', '#6a4a2a', '#444466', '#7a2a5a', '#996633', '#334'];
 const PANTS = ['#222', '#2b2f3a', '#3a2b22', '#1c2a1c', '#444'];
 
+const pickOne = (a) => a[Math.floor(Math.random() * a.length)];
+/** Character material: slightly self-lit so faces and clothes read in the dark (PS1 style). */
+const cm = (c, o = {}) => mat(c, { emissive: shade(c, 0.28), ...o });
+const shade = (c, k = 0.6) => '#' + new THREE.Color(c).multiplyScalar(k).getHexString();
+
+/** Collects boxes per material and merges them into one mesh per material (keeps draw calls low). */
+class PartBuilder {
+  constructor() { this.groups = new Map(); this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion(); this._e = new THREE.Euler(); this._p = new THREE.Vector3(); this._s = new THREE.Vector3(1, 1, 1); }
+  add(material, w, h, d, x, y, z, rx = 0, ry = 0, rz = 0) {
+    const g = new THREE.BoxGeometry(w, h, d);
+    this._e.set(rx, ry, rz); this._q.setFromEuler(this._e);
+    g.applyMatrix4(this._m.compose(this._p.set(x, y, z), this._q, this._s));
+    if (!this.groups.has(material)) this.groups.set(material, []);
+    this.groups.get(material).push(g);
+  }
+  build(parent, shadow = true) {
+    for (const [m, list] of this.groups) {
+      const geo = list.length === 1 ? list[0] : mergeGeometries(list);
+      if (list.length > 1) list.forEach((g) => g.dispose());
+      const mesh = new THREE.Mesh(geo, m); mesh.castShadow = shadow; parent.add(mesh);
+    }
+    this.groups.clear();
+  }
+}
+
 /**
  * Humanoid rig. Root at the feet; `body` is the group that tilts when ragdolling.
- * opts: { skin, shirt, pants, fat, scale, hat:'cap'|'tophat'|'none', hair:'short'|'long'|'none',
- *         headless, horse, mannequin, suit, eyesGlow, faceless }
+ * opts: { skin, shirt, pants, fat, scale, hat:'cap'|'tophat'|'none',
+ *         hair:'short'|'long'|'buzz'|'bun'|'mohawk'|'none', hairColor, beard, glasses,
+ *         outfit:'plain'|'tshirt'|'jacket'|'hoodie'|'shirt'|'suit', accent, shoe,
+ *         headless, horse, mannequin, suit, eyesGlow, faceless, buff, tinyLegs }
+ * Each body part is built from many small boxes merged per material, so faces, fingers and
+ * clothing details cost only a few draw calls per character.
  */
 export function makeHumanoid(o = {}) {
-  const fat = o.fat || 1;
-  const skinC = o.mannequin ? '#cdb899' : o.skin || SKINS[Math.floor(Math.random() * SKINS.length)];
-  const shirtC = o.mannequin ? skinC : o.shirt || SHIRTS[Math.floor(Math.random() * SHIRTS.length)];
-  const pantsC = o.mannequin ? skinC : o.pants || PANTS[Math.floor(Math.random() * PANTS.length)];
-  const skin = mat(skinC), shirt = mat(shirtC), pants = mat(pantsC), shoe = mat(o.horse ? '#111' : '#151515');
+  const fat = o.fat || 1, sq = Math.sqrt(fat);
+  const skinC = o.mannequin ? '#cdb899' : o.skin || pickOne(SKINS);
+  const shirtC = o.mannequin ? skinC : o.shirt || pickOne(SHIRTS);
+  const pantsC = o.mannequin ? skinC : o.pants || pickOne(PANTS);
+  const outfit = o.mannequin ? 'plain' : o.suit ? 'suit' : o.outfit || 'plain';
+  const skin = cm(skinC), shirt = cm(shirtC), pants = cm(pantsC);
+  const accent = cm(o.accent || (outfit === 'suit' ? '#e8e6df' : shade(shirtC, outfit === 'jacket' ? 1.6 : 0.6)));
+  const shoe = o.mannequin ? skin : cm(o.horse ? '#111' : o.shoe || '#151515');
+  const sole = o.mannequin ? skin : cm('#cfcabc');
+  const dark = cm('#121212'), white = cm('#ecebe4'), lip = cm('#6a2c2c'), hairM = cm(o.hairColor || '#1a1410');
+  const B = new PartBuilder();
 
   const root = new THREE.Group();
   const body = new THREE.Group();
   body.scale.setScalar(o.scale || 1);
   root.add(body);
 
+  // ---- hips & belt
   const hips = new THREE.Group(); hips.position.y = 0.92; body.add(hips);
-  const pelvis = box(0.5 * fat, 0.22, 0.3 * fat, pants, 0, 0, 0); hips.add(pelvis);
+  B.add(pants, 0.5 * fat, 0.22, 0.3 * fat, 0, 0, 0);
+  if (!o.mannequin) {
+    B.add(dark, 0.52 * fat, 0.06, 0.32 * fat, 0, 0.09, 0);
+    B.add(cm('#9a8a50'), 0.07, 0.05, 0.02, 0, 0.09, 0.165 * fat);
+  }
+  B.build(hips);
 
+  // ---- legs (pants, shoes with soles)
+  const lw = 0.21 * sq * (o.tinyLegs ? 0.5 : 1), ld = 0.23 * sq * (o.tinyLegs ? 0.5 : 1);
   const mkLeg = (side) => {
     const g = new THREE.Group(); g.position.set(side * 0.14 * fat, 0, 0);
-    g.add(box(0.21 * Math.sqrt(fat), 0.86, 0.23 * Math.sqrt(fat), pants, 0, -0.43, 0));
-    g.add(box(0.22, 0.1, 0.32, shoe, 0, -0.87, 0.05));
+    B.add(pants, lw, 0.86, ld, 0, -0.43, 0);
+    if (!o.mannequin) B.add(pants, lw + 0.01, 0.05, ld + 0.01, 0, -0.78, 0); // cuff
+    B.add(shoe, 0.22, 0.1, 0.32, 0, -0.85, 0.05);
+    if (!o.horse) B.add(sole, 0.23, 0.035, 0.33, 0, -0.9, 0.05);
+    if (!o.mannequin && !o.horse) B.add(white, 0.12, 0.012, 0.14, 0, -0.795, 0.12); // laces
+    B.build(g);
     hips.add(g); return g;
   };
   const legL = mkLeg(1), legR = mkLeg(-1);
 
+  // ---- torso & outfit
   const spine = new THREE.Group(); spine.position.y = 0.08; hips.add(spine);
-  const torso = box(0.56 * fat, 0.66, 0.32 * fat, shirt, 0, 0.33, 0); spine.add(torso);
-  if (fat > 1.2) spine.add(box(0.5 * fat, 0.4, 0.2 * fat, shirt, 0, 0.18, 0.14 * fat)); // belly
-  if (o.suit) {
-    spine.add(box(0.12, 0.5, 0.02, mat('#ddd'), 0, 0.38, 0.165 * fat));
-    spine.add(box(0.06, 0.36, 0.025, mat('#8a0f0f'), 0, 0.38, 0.17 * fat));
+  const tw = 0.56 * fat, td = 0.32 * fat, front = td / 2;
+  B.add(shirt, tw, 0.66, td, 0, 0.33, 0);
+  if (fat > 1.2) B.add(shirt, 0.5 * fat, 0.4, 0.2 * fat, 0, 0.18, 0.14 * fat);
+  if (outfit === 'jacket') {
+    B.add(accent, 0.15, 0.6, 0.02, 0, 0.33, front + 0.005);
+    B.add(shirt, tw + 0.04, 0.08, td + 0.04, 0, 0.63, 0);
+    B.add(dark, 0.1, 0.07, 0.02, -0.16 * fat, 0.12, front + 0.006); B.add(dark, 0.1, 0.07, 0.02, 0.16 * fat, 0.12, front + 0.006);
+  } else if (outfit === 'hoodie') {
+    B.add(shirt, 0.38, 0.24, 0.14, 0, 0.68, -td / 2 - 0.02);
+    B.add(accent, 0.34, 0.14, 0.02, 0, 0.1, front + 0.006);
+    B.add(white, 0.015, 0.15, 0.01, -0.05, 0.52, front + 0.008); B.add(white, 0.015, 0.15, 0.01, 0.05, 0.52, front + 0.008);
+  } else if (outfit === 'suit') {
+    B.add(white, 0.14, 0.5, 0.02, 0, 0.38, front + 0.005);
+    B.add(cm('#8a0f0f'), 0.06, 0.38, 0.025, 0, 0.36, front + 0.01);
+    B.add(shirt, 0.07, 0.4, 0.02, -0.1, 0.42, front + 0.008, 0, 0, -0.25); B.add(shirt, 0.07, 0.4, 0.02, 0.1, 0.42, front + 0.008, 0, 0, 0.25);
+  } else if (outfit === 'shirt') {
+    B.add(white, tw * 0.55, 0.06, td + 0.03, 0, 0.63, 0);
+    for (let i = 0; i < 5; i++) B.add(dark, 0.025, 0.025, 0.01, 0, 0.55 - i * 0.11, front + 0.005);
+  } else if (outfit === 'tshirt' && !o.mannequin) {
+    B.add(accent, 0.2, 0.2, 0.01, 0, 0.42, front + 0.005); // print on the shirt
   }
+  B.build(spine);
 
+  // ---- head & face
   const head = new THREE.Group(); head.position.y = 0.7; spine.add(head);
-  if (o.horse) buildHorseHead(head, skin);
+  if (o.horse) buildHorseHead(B, skin);
   else if (!o.headless) {
-    head.add(box(0.32, 0.36, 0.32, skin, 0, 0.18, 0));
+    B.add(skin, 0.32, 0.36, 0.32, 0, 0.18, 0);
+    B.add(skin, 0.14, 0.12, 0.14, 0, -0.01, 0); // neck
+    if (!o.mannequin) { B.add(skin, 0.04, 0.09, 0.07, -0.17, 0.18, 0); B.add(skin, 0.04, 0.09, 0.07, 0.17, 0.18, 0); }
     if (!o.mannequin && !o.faceless) {
-      const eyeM = o.eyesGlow ? basic(o.eyesGlow) : mat('#111');
-      head.add(box(0.06, 0.05, 0.02, eyeM, -0.08, 0.22, 0.165));
-      head.add(box(0.06, 0.05, 0.02, eyeM, 0.08, 0.22, 0.165));
-      head.add(box(0.12, 0.03, 0.02, mat('#4a2020'), 0, 0.09, 0.165));
-    } else if (o.eyesGlow) {
-      const eyeM = basic(o.eyesGlow);
-      head.add(box(0.07, 0.04, 0.02, eyeM, -0.08, 0.22, 0.165));
-      head.add(box(0.07, 0.04, 0.02, eyeM, 0.08, 0.22, 0.165));
+      B.add(skin, 0.06, 0.08, 0.06, 0, 0.16, 0.18); // nose
+      for (const s of [-1, 1]) {
+        B.add(white, 0.075, 0.045, 0.012, s * 0.075, 0.22, 0.163);
+        B.add(dark, 0.035, 0.042, 0.014, s * 0.075, 0.22, 0.168);
+        B.add(hairM, 0.085, 0.022, 0.016, s * 0.075, 0.265, 0.165, 0, 0, s * -0.12);
+      }
+      B.add(lip, 0.11, 0.026, 0.012, 0, 0.09, 0.163);
+      if (o.beard) {
+        B.add(hairM, 0.3, 0.1, 0.05, 0, 0.05, 0.15); B.add(hairM, 0.12, 0.025, 0.02, 0, 0.115, 0.168);
+        B.add(hairM, 0.04, 0.14, 0.06, -0.155, 0.12, 0.12); B.add(hairM, 0.04, 0.14, 0.06, 0.155, 0.12, 0.12);
+      }
+      if (o.glasses) {
+        B.add(dark, 0.28, 0.018, 0.012, 0, 0.25, 0.172); B.add(dark, 0.05, 0.015, 0.012, 0, 0.22, 0.172);
+        for (const s of [-1, 1]) { B.add(dark, 0.012, 0.06, 0.012, s * 0.135, 0.22, 0.172); B.add(dark, 0.012, 0.012, 0.18, s * 0.165, 0.24, 0.08); B.add(dark, 0.09, 0.012, 0.012, s * 0.075, 0.19, 0.172); }
+      }
     }
-    const hairC = mat(o.hairColor || '#1a1410');
-    if (o.hair === 'long') {
-      head.add(box(0.36, 0.14, 0.36, hairC, 0, 0.38, 0));
-      head.add(box(0.36, 0.55, 0.1, hairC, 0, 0.08, -0.16));
-    } else if (o.hair === 'short') head.add(box(0.34, 0.1, 0.34, hairC, 0, 0.38, 0));
+    const hs = o.mannequin ? 'none' : o.hair;
+    if (hs === 'long') { B.add(hairM, 0.36, 0.14, 0.36, 0, 0.38, 0); B.add(hairM, 0.36, 0.55, 0.1, 0, 0.08, -0.16); B.add(hairM, 0.05, 0.4, 0.3, -0.17, 0.2, -0.02); B.add(hairM, 0.05, 0.4, 0.3, 0.17, 0.2, -0.02); }
+    else if (hs === 'short') { B.add(hairM, 0.34, 0.1, 0.34, 0, 0.38, 0); B.add(hairM, 0.34, 0.18, 0.06, 0, 0.29, -0.15); B.add(hairM, 0.34, 0.05, 0.05, 0, 0.345, 0.155); }
+    else if (hs === 'buzz') B.add(hairM, 0.33, 0.035, 0.33, 0, 0.37, 0);
+    else if (hs === 'bun') { B.add(hairM, 0.34, 0.1, 0.34, 0, 0.38, 0); B.add(hairM, 0.13, 0.13, 0.13, 0, 0.47, -0.1); }
+    else if (hs === 'mohawk') B.add(hairM, 0.06, 0.16, 0.32, 0, 0.44, 0);
+    if (!o.mannequin && !o.faceless && o.eyesGlow) { /* glow eyes handled below */ }
   } else {
-    head.add(box(0.12, 0.08, 0.12, skin, 0, 0.04, 0)); // neck stump
+    B.add(skin, 0.12, 0.08, 0.12, 0, 0.04, 0); // neck stump
   }
-  if (o.hat === 'tophat') {
-    const hm = mat('#111');
-    head.add(cyl(0.2, 0.2, 0.04, 8, hm, 0, o.horse ? 0.42 : 0.38, 0));
-    head.add(cyl(0.13, 0.13, 0.26, 8, hm, 0, o.horse ? 0.56 : 0.52, 0));
-  } else if (o.hat === 'cap') {
-    const hm = mat(o.capColor || '#2a6a2a');
-    head.add(box(0.35, 0.1, 0.35, hm, 0, 0.39, 0));
-    head.add(box(0.3, 0.03, 0.18, hm, 0, 0.35, 0.22));
+  B.build(head);
+  if (!o.headless && !o.horse && o.eyesGlow) {
+    const eyeM = basic(o.eyesGlow);
+    head.add(box(0.07, 0.045, 0.02, eyeM, -0.075, 0.22, 0.17, false));
+    head.add(box(0.07, 0.045, 0.02, eyeM, 0.075, 0.22, 0.17, false));
+  }
+  let hat = null;
+  if (o.hat === 'tophat' || o.hat === 'cap') {
+    hat = new THREE.Group();
+    const hm = cm(o.hat === 'tophat' ? '#111' : o.capColor || '#2a6a2a');
+    const y0 = o.horse ? 0.04 : 0;
+    if (o.hat === 'tophat') { B.add(hm, 0.4, 0.04, 0.4, 0, 0.38 + y0, 0); B.add(hm, 0.26, 0.26, 0.26, 0, 0.52 + y0, 0); B.add(cm('#6a1010'), 0.27, 0.05, 0.27, 0, 0.42 + y0, 0); }
+    else { B.add(hm, 0.35, 0.1, 0.35, 0, 0.39, 0); B.add(hm, 0.3, 0.03, 0.18, 0, 0.35, 0.22); B.add(hm, 0.04, 0.03, 0.04, 0, 0.45, 0); }
+    B.build(hat); head.add(hat);
   }
 
+  // ---- arms with sleeves, hands and fingers
   const mkArm = (side) => {
     const g = new THREE.Group(); g.position.set(side * (0.28 * fat + 0.09), 0.62, 0);
-    g.add(box(0.15, 0.64, 0.17, shirt, 0, -0.3, 0));
-    g.add(box(0.13, 0.13, 0.13, o.horse ? shoe : skin, 0, -0.66, 0));
+    if (outfit === 'tshirt') { B.add(shirt, 0.16, 0.3, 0.18, 0, -0.14, 0); B.add(skin, 0.13, 0.36, 0.15, 0, -0.45, 0); }
+    else {
+      B.add(shirt, 0.15, 0.64, 0.17, 0, -0.3, 0);
+      if (outfit === 'suit' || outfit === 'shirt' || outfit === 'jacket') B.add(outfit === 'jacket' ? shirt : white, 0.155, 0.05, 0.175, 0, -0.6, 0);
+    }
+    if (o.horse) B.add(cm('#111'), 0.13, 0.13, 0.13, 0, -0.66, 0);
+    else {
+      B.add(skin, 0.11, 0.1, 0.07, 0, -0.67, 0);
+      for (let i = 0; i < 4; i++) B.add(skin, 0.024, 0.075, 0.03, (i - 1.5) * 0.027, -0.755, 0.005);
+      B.add(skin, 0.028, 0.065, 0.03, -side * 0.062, -0.69, 0.03, 0, 0, side * 0.5);
+    }
+    B.build(g);
+    if (o.buff) g.scale.set(1.7, 1.05, 1.7);
     spine.add(g); return g;
   };
   const armL = mkArm(1), armR = mkArm(-1);
 
   root.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = false; } });
-  return { root, body, hips, spine, head, armL, armR, legL, legR, skinMat: skin, opts: o, phase: Math.random() * 10 };
+  return { root, body, hips, spine, head, armL, armR, legL, legR, hat, skinMat: skin, opts: o, phase: Math.random() * 10 };
 }
 
-function buildHorseHead(head, skin) {
-  head.add(box(0.3, 0.34, 0.32, skin, 0, 0.18, -0.02));
-  head.add(box(0.22, 0.22, 0.42, skin, 0, 0.1, 0.3));
-  head.add(box(0.2, 0.08, 0.06, mat('#1a0d05'), 0, 0.05, 0.52)); // nostrils
-  head.add(box(0.06, 0.14, 0.06, skin, -0.1, 0.42, -0.04));
-  head.add(box(0.06, 0.14, 0.06, skin, 0.1, 0.42, -0.04));
-  head.add(box(0.08, 0.36, 0.1, mat('#120a05'), 0, 0.28, -0.18)); // mane
-  head.add(box(0.03, 0.06, 0.06, mat('#000'), -0.155, 0.24, 0.12));
-  head.add(box(0.03, 0.06, 0.06, mat('#000'), 0.155, 0.24, 0.12));
+function buildHorseHead(B, skin) {
+  const dark = cm('#1a0d05'), mane = cm('#120a05'), eye = cm('#000'), white = cm('#e8e6dc');
+  B.add(skin, 0.3, 0.34, 0.32, 0, 0.18, -0.02);
+  B.add(skin, 0.22, 0.22, 0.42, 0, 0.1, 0.3);
+  B.add(skin, 0.14, 0.12, 0.14, 0, -0.01, -0.02);
+  B.add(dark, 0.2, 0.08, 0.06, 0, 0.05, 0.52);
+  B.add(dark, 0.04, 0.04, 0.02, -0.06, 0.08, 0.515); B.add(dark, 0.04, 0.04, 0.02, 0.06, 0.08, 0.515);
+  B.add(skin, 0.06, 0.14, 0.06, -0.1, 0.42, -0.04); B.add(skin, 0.06, 0.14, 0.06, 0.1, 0.42, -0.04);
+  B.add(mane, 0.08, 0.36, 0.1, 0, 0.28, -0.18); B.add(mane, 0.08, 0.06, 0.2, 0, 0.36, 0.05);
+  for (const s of [-1, 1]) { B.add(white, 0.02, 0.07, 0.08, s * 0.155, 0.24, 0.12); B.add(eye, 0.025, 0.05, 0.04, s * 0.158, 0.24, 0.135); }
+  B.add(white, 0.16, 0.03, 0.02, 0, -0.005, 0.5); // teeth
 }
 
 /** Giant floating horse head for the sky. */
@@ -204,6 +301,10 @@ export function pose(rig, mode, dt, t, speed = 0) {
       T.llx = -1.5; T.lrx = -1.5; T.by = -0.45; T.arx = -2.6 + Math.sin(t * 10) * 1.3; T.alx = -0.6; break;
     case 'drive':
       T.llx = -1.5; T.lrx = -1.5; T.by = -0.45; T.alx = -1.2; T.arx = -1.2; break;
+    case 'flex':
+      T.alz = 2.3 + Math.sin(t * 6) * 0.15; T.arz = -2.3 - Math.sin(t * 6) * 0.15; T.alx = -0.4; T.arx = -0.4; T.sx = -0.12; T.hx = -0.15; T.by = Math.abs(Math.sin(t * 3)) * 0.03; break;
+    case 'press':
+      T.llx = -1.5; T.lrx = -1.5; T.by = -0.45; T.alx = -2.75 + Math.sin(t * 2) * 0.1; T.arx = -2.75 + Math.sin(t * 2) * 0.1; T.sx = -0.2; break;
     case 'wave':
       T.arz = -2.6 + Math.sin(t * 10) * 0.4; break;
     case 'flail':
@@ -355,7 +456,12 @@ export const randomLook = () => ({
   skin: SKINS[Math.floor(Math.random() * SKINS.length)],
   shirt: SHIRTS[Math.floor(Math.random() * SHIRTS.length)],
   pants: PANTS[Math.floor(Math.random() * PANTS.length)],
-  hair: Math.random() < 0.7 ? 'short' : 'none',
+  outfit: pickOne(['tshirt', 'tshirt', 'jacket', 'hoodie', 'shirt', 'plain']),
+  hair: pickOne(['short', 'short', 'buzz', 'bun', 'long', 'none', 'mohawk']),
+  hairColor: pickOne(['#1a1410', '#1a1410', '#3a2414', '#6a4a20', '#888', '#b08040']),
+  beard: Math.random() < 0.2,
+  glasses: Math.random() < 0.15,
+  shoe: pickOne(['#151515', '#151515', '#eeeeee', '#6a2a1a', '#2a3a6a']),
   hat: Math.random() < 0.2 ? 'cap' : 'none',
   capColor: ['#333', '#600', '#225', '#552'][Math.floor(rand(0, 4))],
   fat: Math.random() < 0.15 ? 1.4 : rand(0.92, 1.08),

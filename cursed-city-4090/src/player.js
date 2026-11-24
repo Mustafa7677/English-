@@ -122,6 +122,7 @@ export class Player {
     if (this.exhausted && this.stamina > 30) this.exhausted = false;
     const sprint = wantSprint && !this.exhausted;
     let speed = crouch ? 2.0 : sprint ? 7.6 : 4.0;
+    if (this.sigma > 0) this.sigma -= dt;
     if (this.energy > 0) { this.energy -= dt; speed *= 1.25; this.stamina = 100; this.exhausted = false; }
     if (this.hasRTX) speed *= 0.97;
     this.stamina = clamp(this.stamina + (sprint ? -17 : moving ? 8 : 14) * dt, 0, 100);
@@ -244,6 +245,7 @@ export class Player {
     const G = this.G;
     if (this.kickCd > 0 || this.hiding || this.inVehicle || this.stamina < 8) return;
     this.kickCd = 0.55; this.kickT = 0.32; this.stamina -= 10;
+    const sig = this.sigma > 0 ? 2 : 1;
     const f = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
     let hit = false;
     for (const n of G.npcs) {
@@ -258,7 +260,7 @@ export class Player {
         n.stun = Math.max(n.stun || 0, n.mem.boss ? 0.2 : 0.8);
       } else {
         if (n.rd) { n.rd.vx += f.x * 8; n.rd.vz += f.z * 8; n.rd.vy += 4; n.rd.air = true; n.rd.phase = 'fall'; n.rd.tiltVel += 4; }
-        else { n.stopScriptIfInterruptible(); n.fallFrom({ dir: f, power: n.hostile ? 9 : 8, up: 4, spin: 4, lie: n.hostile ? 1.6 : 2.2 }); }
+        else { n.stopScriptIfInterruptible(); n.fallFrom({ dir: f, power: (n.hostile ? 9 : 8) * sig, up: 4 * sig, spin: 4 * sig, lie: n.hostile ? 1.6 : 2.2 }); }
         if (n.mem.awake && n.hostile) n.mem.until = Math.min(n.mem.until || 0, G.time + 6);
         G.audio.thud(n.pos.clone().setY(1.2), 1);
         if (G.fx) G.fx.emit(n.pos.clone().setY(1.1), 14, 'dust');

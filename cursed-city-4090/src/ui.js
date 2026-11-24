@@ -177,7 +177,7 @@ function drawScreamer(ctx, kind) {
   const W = 320, H = 240;
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
   if (kind === 'buddy') { drawBuddySelfie(ctx, W, H); return; }
-  const skin = { horse: '#4a2c18', robot: '#2a3a2a', ghost: '#cfcfc4', toilet: '#e8e8e8', pale: '#d8d6cc', mannequin: '#cdb899', log: '#8a5a2c', shark: '#7a8a96' }[kind] || '#4a2c18';
+  const skin = { horse: '#4a2c18', robot: '#2a3a2a', ghost: '#cfcfc4', toilet: '#e8e8e8', pale: '#d8d6cc', mannequin: '#cdb899', log: '#8a5a2c', shark: '#7a8a96', sock: '#3050c0', skull: '#e8e4d8' }[kind] || '#4a2c18';
   ctx.save();
   ctx.translate(W / 2, H / 2 + 10);
   // head shape
@@ -196,7 +196,7 @@ function drawScreamer(ctx, kind) {
   }
   ctx.fill();
   // eyes
-  const eye = kind === 'robot' ? '#76ff03' : (kind === 'ghost' || kind === 'pale' || kind === 'mannequin') ? '#000' : kind === 'log' ? '#fff' : '#ff1a1a';
+  const eye = kind === 'robot' ? '#76ff03' : (kind === 'ghost' || kind === 'pale' || kind === 'mannequin' || kind === 'skull') ? '#000' : kind === 'log' ? '#fff' : '#ff1a1a';
   ctx.shadowColor = eye; ctx.shadowBlur = 25; ctx.fillStyle = eye;
   if (kind === 'robot') { ctx.fillRect(-90, -50, 180, 26); }
   else {
