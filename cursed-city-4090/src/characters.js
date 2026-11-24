@@ -111,6 +111,7 @@ export function makeHumanoid(o = {}) {
   // ---- head & face
   const head = new THREE.Group(); head.position.y = 0.7; spine.add(head);
   if (o.horse) buildHorseHead(B, skin);
+  else if (o.animal) buildAnimalHead(B, skin, o.animal);
   else if (!o.headless) {
     B.add(skin, 0.32, 0.36, 0.32, 0, 0.18, 0);
     B.add(skin, 0.14, 0.12, 0.14, 0, -0.01, 0); // neck
@@ -180,6 +181,29 @@ export function makeHumanoid(o = {}) {
 
   root.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = false; } });
   return { root, body, hips, spine, head, armL, armR, legL, legR, hat, skinMat: skin, opts: o, phase: Math.random() * 10 };
+}
+
+function buildAnimalHead(B, skin, kind) {
+  const dark = cm('#111'), pink = cm('#d07080'), white = cm('#eeeeee');
+  B.add(skin, 0.14, 0.12, 0.14, 0, -0.01, 0);
+  if (kind === 'dog') {
+    B.add(skin, 0.32, 0.32, 0.32, 0, 0.18, 0);
+    B.add(skin, 0.2, 0.16, 0.24, 0, 0.1, 0.22);                 // snout
+    B.add(dark, 0.08, 0.06, 0.04, 0, 0.15, 0.345);              // nose
+    B.add(cm('#5a3010'), 0.07, 0.24, 0.12, -0.18, 0.12, 0, 0, 0, 0.25); B.add(cm('#5a3010'), 0.07, 0.24, 0.12, 0.18, 0.12, 0, 0, 0, -0.25); // floppy ears
+    for (const s of [-1, 1]) { B.add(white, 0.06, 0.05, 0.012, s * 0.08, 0.24, 0.163); B.add(dark, 0.03, 0.045, 0.014, s * 0.08, 0.24, 0.168); }
+    B.add(pink, 0.06, 0.03, 0.08, 0, 0.02, 0.3);                // tongue
+  } else if (kind === 'cat') {
+    B.add(skin, 0.34, 0.3, 0.3, 0, 0.17, 0);
+    B.add(skin, 0.07, 0.12, 0.06, -0.11, 0.37, 0, 0, 0, 0.2); B.add(skin, 0.07, 0.12, 0.06, 0.11, 0.37, 0, 0, 0, -0.2);
+    B.add(pink, 0.04, 0.06, 0.02, -0.11, 0.36, 0.035, 0, 0, 0.2); B.add(pink, 0.04, 0.06, 0.02, 0.11, 0.36, 0.035, 0, 0, -0.2);
+    B.add(cm('#e0e0d8'), 0.16, 0.1, 0.06, 0, 0.1, 0.15);        // muzzle
+    B.add(pink, 0.04, 0.03, 0.02, 0, 0.14, 0.185);
+    for (const s of [-1, 1]) {
+      B.add(cm('#e8c020'), 0.07, 0.06, 0.012, s * 0.08, 0.22, 0.152); B.add(dark, 0.015, 0.055, 0.014, s * 0.08, 0.22, 0.158);
+      B.add(white, 0.14, 0.006, 0.006, s * 0.13, 0.11, 0.17, 0, 0, s * 0.1); B.add(white, 0.14, 0.006, 0.006, s * 0.13, 0.09, 0.17, 0, 0, -s * 0.1);
+    }
+  }
 }
 
 function buildHorseHead(B, skin) {
@@ -305,6 +329,10 @@ export function pose(rig, mode, dt, t, speed = 0) {
       T.alz = 2.3 + Math.sin(t * 6) * 0.15; T.arz = -2.3 - Math.sin(t * 6) * 0.15; T.alx = -0.4; T.arx = -0.4; T.sx = -0.12; T.hx = -0.15; T.by = Math.abs(Math.sin(t * 3)) * 0.03; break;
     case 'press':
       T.llx = -1.5; T.lrx = -1.5; T.by = -0.45; T.alx = -2.75 + Math.sin(t * 2) * 0.1; T.arx = -2.75 + Math.sin(t * 2) * 0.1; T.sx = -0.2; break;
+    case 'peck': {
+      const b = Math.max(0, Math.sin(t * 7));
+      T.sx = 0.9 + b * 0.45; T.hx = 0.3; T.llx = -0.9; T.lrx = -0.9; T.by = -0.35; T.alx = 0.8; T.arx = 0.8; T.alz = 0.3; T.arz = -0.3; break;
+    }
     case 'wave':
       T.arz = -2.6 + Math.sin(t * 10) * 0.4; break;
     case 'flail':

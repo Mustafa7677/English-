@@ -13,6 +13,7 @@ import { extendDirector5 } from './scenes5.js';
 import { extendDirector6 } from './scenes6.js';
 import { extendDirector7 } from './scenes7.js';
 import { extendDirector8 } from './scenes8.js';
+import { extendDirector9 } from './scenes9.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 
@@ -32,9 +33,10 @@ class Cart {
     this.G = G; this.D = D;
     const m = makeCart(); this.m = m; this.group = m.group;
     G.scene.add(this.group);
-    this.path = [V(-57, 0, -57), V(57, 0, -57), V(57, 0, 57), V(-57, 0, 57)];
-    this.seg = 3; this.t = 0.15;
-    this.speed = 4.3; this.state = 'drive'; this.heading = Math.PI; this.rollV = 0;
+    // loop through the main crossroads (z = 3 lane) so the horse-driving-a-human scene is right in front of the player
+    this.path = [V(-57, 0, 3), V(57, 0, 3), V(57, 0, 57), V(-57, 0, 57)];
+    this.seg = 0; this.t = 0.36;
+    this.speed = 3.4; this.state = 'drive'; this.heading = Math.PI / 2; this.rollV = 0; this.talkT = 6;
     this.flying = false; this.flyAngle = 0; this.whipT = 0;
     this.puller = D.human({ shirt: '#4a4a44', pants: '#2a2a2a', hair: 'short', fat: 1 }, { name: 'Cart Man', ai: 'none', special: true, voice: { pitch: 0.9, rate: 1.1 } });
     this.puller.attached = true; this.puller.mem.noHorror = true;
@@ -86,6 +88,18 @@ class Cart {
     if (ho.attached && (this.state === 'drive' || this.flying)) {
       this.whipT -= dt;
       if (this.whipT <= 0) { this.whipT = rand(0.9, 1.6); if (ho.distToPlayer() < 40 || this.flying) G.audio.whip(ho.pos); }
+      this.talkT -= dt;
+      if (this.talkT <= 0 && ho.distToPlayer() < 28 && !this.flying) {
+        this.talkT = rand(9, 14);
+        const [a, b] = pick([
+          ['FASTER, HUMAN! GIDDY UP!', '...yes... master...'],
+          ['Who is a good human? Not you. FASTER.', '*heavy panting*'],
+          ['Left! LEFT! Your other left!', 'I have... a degree... in economics...'],
+          ['If you stop, no sugar cube tonight.', 'Please... I need... the sugar cube...'],
+          ['Look at this one, staring. Never seen a horse drive before?', '...help me...'],
+        ]);
+        ho.say(a, 2.5); this.D.after(2.6, () => pl.say(b, 2.5));
+      }
     }
   }
 }
@@ -323,6 +337,11 @@ export class Director {
     return to.divideScalar(len).dot(d) > dot;
   }
   findSpot(minD, maxD, behind = false, spread = 0.9) {
+    if (this.anchor) { // location-bound events: always happen at their own place
+      const a = this.anchor, W = this.G.world;
+      for (let i = 0; i < 30; i++) { const x = a.x + rand(-4, 4), z = a.z + rand(-4, 4); if (W.isFree(x, z, 0.8)) return V(x, 0, z); }
+      return a.clone();
+    }
     const W = this.G.world, P = this.G.player.pos, f = this.playerFwd().clone();
     if (behind) f.negate();
     const base = Math.atan2(f.x, f.z);
@@ -514,8 +533,8 @@ export class Director {
       return;
     }
     m.chatCd = (m.chatCd ?? 30) - dt;
-    if (m.chatCd <= 0) { m.chatCd = rand(40, 70); n.say(pick(BUDDY_LINES), 3.5); }
-    m.tripCd = (m.tripCd ?? rand(25, 45)) - dt;
+    if (m.chatCd <= 0) { m.chatCd = rand(80, 130); n.say(pick(BUDDY_LINES), 3.5); }
+    m.tripCd = (m.tripCd ?? rand(120, 180)) - dt;
     m.braveCd = (m.braveCd ?? 0) - dt;
     let threat = null, best = 18;
     for (const t of this.threats()) {
@@ -533,9 +552,9 @@ export class Director {
         br.ignore = n; br.byBuddy = true;
         n.say(pick(['EAT BRICK!', 'BRICK ATTACK!', 'I HAVE ONE (1) BRICK!']), 1.6, true);
       }
-      if (Math.random() < dt * 0.9 || Math.hypot(threat.x - n.pos.x, threat.z - n.pos.z) < 2) {
+      if (Math.random() < dt * 0.25 || Math.hypot(threat.x - n.pos.x, threat.z - n.pos.z) < 1.5) {
         m.brave = false; m.braveCd = 7;
-        n.fallFrom({ dir: 'forward', power: 5.5, up: 0.6, lie: 1.4 });
+        n.fallFrom({ dir: 'forward', power: 5.5, up: 0.6, lie: 1.4, silent: true });
       }
       return;
     }
@@ -546,7 +565,7 @@ export class Director {
       n.steer(P.pos.x - fb.x * 0.9, P.pos.z - fb.z * 0.9, 4, dt, 'protect');
       return;
     }
-    if (m.tripCd <= 0 && d < 15) { m.tripCd = rand(30, 55); n.fallFrom({ dir: 'forward', power: 4, up: 0.3, lie: 1.2 }); return; }
+    if (m.tripCd <= 0 && d < 15) { m.tripCd = rand(150, 220); n.fallFrom({ dir: 'forward', power: 4, up: 0.3, lie: 1.2, silent: true }); return; }
     const f = this.playerFwd();
     const tx = P.pos.x - f.x * 2.6 - f.z * 1.3, tz = P.pos.z - f.z * 2.6 + f.x * 1.3;
     const dd = Math.hypot(tx - n.pos.x, tz - n.pos.z);
@@ -557,7 +576,7 @@ export class Director {
   /** Buddy fell over loudly — something nearby wakes up. */
   buddyNoise(b) {
     const G = this.G;
-    if (G.time - (this.lastNoise || -99) < 10 || this.ended) return;
+    if (G.time - (this.lastNoise || -99) < 120 || this.ended || Math.random() > 0.35) return;
     this.lastNoise = G.time;
     this.after(1.2, () => b.say(pick(["I'M OKAY!", 'I meant to do that!', 'The ground attacked first!', 'Ow. Did anyone hear that?']), 2));
     let target = null, best = 50;
@@ -1577,3 +1596,4 @@ extendDirector5(Director);
 extendDirector6(Director);
 extendDirector7(Director);
 extendDirector8(Director);
+extendDirector9(Director);

@@ -89,7 +89,7 @@ export class FX {
     const c = new THREE.Color();
     for (let i = 0; i < n; i++) {
       const k = this.next; this.next = (this.next + 1) % this.N;
-      const sp = kind === 'spark' ? 6 : kind === 'confetti' ? 5 : 2.2;
+      const sp = kind === 'spark' ? 6 : kind === 'confetti' ? 5 : kind === 'crumb' ? 3 : 2.2;
       this.pos[k * 3] = p.x + (Math.random() - 0.5) * 0.3;
       this.pos[k * 3 + 1] = p.y + Math.random() * 0.3;
       this.pos[k * 3 + 2] = p.z + (Math.random() - 0.5) * 0.3;
@@ -97,10 +97,11 @@ export class FX {
       this.vel[k * 3 + 1] = Math.random() * sp * (kind === 'dust' ? 0.5 : 1);
       this.vel[k * 3 + 2] = (Math.random() - 0.5) * sp;
       this.life[k] = kind === 'dust' ? 0.9 + Math.random() * 0.6 : 0.5 + Math.random() * 0.6;
-      this.grav[k] = kind === 'dust' ? -0.6 : 9;
+      this.grav[k] = kind === 'dust' ? -0.6 : kind === 'crumb' ? 14 : 9;
       if (kind === 'spark') c.setHSL(0.1 + Math.random() * 0.06, 1, 0.6);
       else if (kind === 'confetti') c.setHSL(Math.random(), 0.9, 0.6);
       else if (kind === 'green') c.setHSL(0.27, 1, 0.55);
+      else if (kind === 'crumb') c.setHSL(0.09, 0.6, 0.5 + Math.random() * 0.2);
       else c.setHSL(0.1, 0.1, 0.45 + Math.random() * 0.2);
       this.col[k * 3] = c.r; this.col[k * 3 + 1] = c.g; this.col[k * 3 + 2] = c.b;
     }

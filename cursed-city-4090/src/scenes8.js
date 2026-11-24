@@ -274,7 +274,8 @@ export function extendDirector8(D) {
     this.fakeNext -= dt;
     if (this.fakeNext > 0 || this.horrorRunning || this.ended || Pl.inVehicle || Pl.hiding || G.time < 60) return;
     this.fakeNext = rand(130, 200);
-    const kind = pick(['steps', 'phone', 'whisper', 'flash', 'knock']);
+    const kind = this._forcedKind || pick(['steps', 'phone', 'whisper', 'flash', 'knock']);
+    this._forcedKind = null;
     const D2 = this;
     this.task(function* () {
       const f = D2.playerFwd().clone();

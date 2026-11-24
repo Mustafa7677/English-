@@ -271,11 +271,11 @@ export function extendDirector4(D) {
   P.updateCroco = function (dt) {
     const G = this.G, Pl = G.player;
     this.crocoNext -= dt;
-    if (!this.croco && this.crocoNext <= 0 && !this.horrorRunning && !Pl.inVehicle && !Pl.inBasement()) {
+    if (!this.croco && this.crocoNext <= 0 && !this.horrorRunning && !Pl.inVehicle && !Pl.inBasement() && Math.abs(Pl.pos.z) < 35 && Math.abs(Pl.pos.x) < 90) {
       this.crocoNext = this.finale ? rand(60, 90) : rand(220, 320);
       const m = makeCrocoplane();
-      const a = rand(0, Math.PI * 2), dir = V(Math.cos(a), 0, Math.sin(a));
-      m.group.position.copy(Pl.pos).addScaledVector(dir, -150).setY(17);
+      const dir = V(1, 0, 0); // fixed flight path: west -> east along the main road
+      m.group.position.set(-170, 17, 1);
       m.group.rotation.y = Math.atan2(dir.x, dir.z);
       G.scene.add(m.group);
       this.croco = { m, dir, drops: 0, dropT: 0, engine: G.audio.loop('engine', m.group.position) };
